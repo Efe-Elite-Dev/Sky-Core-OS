@@ -6,18 +6,26 @@
 /* Masaüstü Grafiklerini ve Pencereleri Yenileyen Ana Fonksiyon */
 void gui_refresh_desktop(void) {
     // Çift arabellek (back_buffer) üzerine pencere ve arayüz elemanlarını çizer
-    // Örnek: Basit bir görev çubuğu çizgisi
     for (int x = 0; x < SCREEN_WIDTH; x++) {
-        // Alt kısma gri bir bar çiz (Örnek Gui Çizimi)
         if (x % 2 == 0) {
-            // Arabellek adresi veya gui çizim kütüphanesi fonksiyon çağrısı buraya gelebilir
-            // draw_pixel_pure(x, 570, 0x00CCCCCC);
+            // Masaüstü arka planı veya alt bar için temel çizim döngüsü
         }
     }
 }
 
-/* GUI Alt Sistem İlk Kurulumu */
-void init_graph_mode(void) {
-    // Grafik modu arayüz bileşenleri hafıza hazırlığı
-    ai_core_predict_scheduler(0, 0, 0); // Güvenlik amaçlı AI ajanına ilk sinyal
+/* YENİ: exe_subsystem.c dosyasının aradığı eksik pencere çizme fonksiyonu */
+void draw_window_pure(int x, int y, int width, int height, uint32_t color, const char* title) {
+    // Derleyicinin ve linker'ın hata vermesini önleyen kurşun geçirmez boş gövde.
+    // İleride buraya pencere kenarlığı ve başlık çubuğu çizim kodlarını ekleyebilirsin.
+    (void)x;
+    (void)y;
+    (void)width;
+    (void)height;
+    (void)color;
+    (void)title;
 }
+
+/* DİKKAT: multiple definition hatasını engellemek için 
+   init_graph_mode() fonksiyonu buradan tamamen kaldırıldı! 
+   O görev artık sadece screen.c dosyasında.
+*/
