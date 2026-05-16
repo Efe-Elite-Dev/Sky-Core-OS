@@ -1,6 +1,6 @@
 #include "wind_subsystem.h"
 
-/* kernel.c içindeki akıcı çift arabellek dizisine dışarıdan bağlanıyoruz */
+/* kernel.c içindeki akıcı arabelleğe dışarıdan bağlanıyoruz */
 extern uint32_t* back_buffer;
 
 void outb(unsigned short port, unsigned char val) {
@@ -14,15 +14,14 @@ unsigned char inb(unsigned short port) {
 }
 
 void init_graph_mode(void) {
-    // VBE grafik modu GRUB tarafından boot.asm üzerinden otomatik açılıyor.
+    /* VBE modu GRUB ve boot.asm tarafından otomatik kuruluyor */
 }
 
-/* İşte o meşhur fonksiyonun modern, zırhlı hali! */
 void draw_pixel_pure(int x, int y, uint32_t color) {
-    // Sınır kontrolü: Ekrandan taşmaları engelle, sanal makineyi çökertme!
+    /* Ekrandan taşma kontrolü (Sanal makine çökmesini engeller) */
     if (x < 0 || x >= 800 || y < 0 || y >= 600) return;
     
-    // Pikseli doğrudan 5MB/32MB güvenli arabelleğe yazıyoruz
+    /* Doğrudan 32MB güvenli arabelleğe yaz */
     back_buffer[y * 800 + x] = color;
 }
 
@@ -31,5 +30,14 @@ void clear_screen_gfx(uint32_t color) {
         for (int x = 0; x < 800; x++) {
             draw_pixel_pure(x, y, color);
         }
+    }
+}
+
+void clear_text_screen(void) {
+    /* Eski text modundan kalma temizlik fonksiyonu */
+    char* vga_text = (char*)0xB8000;
+    for (int i = 0; i < 80 * 25 * 2; i += 2) {
+        vga_text[i] = ' ';
+        vga_text[i+1] = 0x07;
     }
 }
