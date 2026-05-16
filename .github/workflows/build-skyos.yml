@@ -14,22 +14,17 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install Saf UEFI Dependencies
+    - name: Paketleri Sessiz ve Zorunlu Kur (Hayat Kurtaran Adım)
       run: |
         sudo apt-get update
-        sudo apt-get install -y nasm xorriso mtools grub-common \
-                               grub-pc grub-pc-bin \
-                               grub-efi-ia32-bin grub-efi-amd64-bin \
-                               gcc gcc-multilib
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -yq nasm xorriso mtools grub-common grub-pc grub-pc-bin grub-efi-ia32-bin grub-efi-amd64-bin gcc gcc-multilib
 
-    - name: Build ISO via Script
+    - name: ISO'yu Derle
       run: |
         chmod +x build.sh
-        set +e
         bash build.sh
-        exit 0
 
-    - name: Upload ISO Artifact
+    - name: ISO Dosyasını Artifact Olarak Yükle
       uses: actions/upload-artifact@v4
       with:
         name: windos-iso-package
