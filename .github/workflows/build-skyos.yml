@@ -14,10 +14,13 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install dependencies
+    - name: Install Saf UEFI Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y nasm xorriso grub-pc grub-pc-bin grub-common mtools gcc gcc-multilib
+        sudo apt-get install -y nasm xorriso mtools grub-common \
+                               grub-pc grub-pc-bin \
+                               grub-efi-ia32-bin grub-efi-amd64-bin \
+                               gcc gcc-multilib
 
     - name: Build ISO via Script
       run: |
@@ -32,15 +35,3 @@ jobs:
         name: windos-iso-package
         path: windos.iso
         if-no-files-found: error
-
-    - name: Create GitHub Release and Upload ISO
-      uses: softprops/action-gh-release@v2
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      with:
-        tag_name: v1.1.${{ github.run_number }}
-        name: Wind OS Full AI-Core v1.1.${{ github.run_number }}
-        body: |
-          🚀 Wind OS - ISO Derlemesi Tamamen Düzeltildi!
-        draft: false
-        prerelease: false
-        files: windos.iso
