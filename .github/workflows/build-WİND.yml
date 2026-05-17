@@ -11,20 +11,24 @@ jobs:
     runs-on: ubuntu-22.04
     permissions:
       contents: write
+
     steps:
-    - uses: actions/checkout@v4
+    - name: Depoyu Klonla (Checkout)
+      uses: actions/checkout@v4
 
     - name: Sky OS Evrensel Derleme Araçlarını Kur
       run: |
         sudo apt-get update
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install -yq nasm gcc mtools xorriso grub-pc-bin grub-efi-amd64-bin grub-common
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -yq \
+          nasm gcc mtools xorriso grub-pc-bin grub-common libisoburn-dev
 
-    - name: Wind OS'u Derle ve ISO Bas
+    - name: Wind OS'u Makefile ile Derle ve ISO Bas
       run: |
-        chmod +x build.sh
-        bash build.sh
+        # Önceki kalıntıları temizle ve sıfırdan mermi gibi derle
+        make clean
+        make
 
-    - name: ISO'yu Actions'a Yükle
+    - name: ISO'yu Actions Artifact Alanına Yükle
       uses: actions/upload-artifact@v4
       with:
         name: windos-release
