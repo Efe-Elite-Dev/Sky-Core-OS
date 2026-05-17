@@ -6,6 +6,15 @@
 static uint8_t last_scancode = 0;
 
 /**
+ * @brief Klavye sürücüsünü ve donanım tamponunu ilk fırlatan motor.
+ */
+void init_keyboard(void) {
+    last_scancode = 0;
+    // Donanım tamponunu temizlemek için boşa bir okuma yapıyoruz
+    (void)inb(KEYBOARD_DATA_PORT);
+}
+
+/**
  * @brief Klavye tampon belleğinde yeni tuş basımı var mı kontrol eder.
  */
 void check_keyboard_pure(void) {
