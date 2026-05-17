@@ -1,4 +1,5 @@
 #include "wind_subsystem.h"
+#include "mouse.h"  /* Kendi başlık dosyasını da ekleyerek prototipleri kilitliyoruz */
 
 static int mouse_x = 400;
 static int mouse_y = 300;
@@ -6,7 +7,7 @@ static int mouse_click_stress = 0;
 
 /* Fare Sürücüsü Ham Veri Toplama Modülü */
 void handle_mouse_polling(void) {
-    // PS/2 Fare portundan (0x60) veri okuma simülasyonu / donanım sorgusu
+    // PS/2 Fare portundan (0x64 durum, 0x60 veri) veri okuma donanım sorgusu
     uint8_t status = inb(0x64);
     
     if (status & 0x01) {
@@ -17,8 +18,7 @@ void handle_mouse_polling(void) {
         }
     }
 
-    // Gecikmeye sebep olan, projenin diğer yerlerinde bulunmayan setup_stage() kaldırıldı!
-    // Bunun yerine çekirdeğin stabil kalması sağlandı.
+    // Çekirdeğin ekran taşması yapıp çökmesini engelleyen güvenlik sınırları
     if (mouse_x > 800) mouse_x = 799;
     if (mouse_y > 600) mouse_y = 599;
 }
