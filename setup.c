@@ -1,6 +1,6 @@
 #include "setup.h"
 
-// Başlık dosyası senkronizasyon hatalarını önlemek için makroları buraya sabitliyoruz
+// Başlık dosyası uyuşmazlıklarını önlemek için 3D makrolarını buraya sabitliyoruz
 #ifndef COLOR_WIND_3D_LIGHT
 #define COLOR_WIND_3D_LIGHT  22  // Parlayan 3D Kenar Işığı (Beyaz)
 #endif
@@ -9,7 +9,11 @@
 #define COLOR_WIND_3D_DARK   23  // Derin 3D Kenar Gölgesi (Koyu Gri)
 #endif
 
-extern void outb(uint16_t port, uint8_t val);
+// LINKER HATASINI ÇÖZEN DONANIM PORT FONKSİYONU (INLINE ASSEMBLY)
+// Dışarıdan outb aramaya gerek kalmadan doğrudan CPU registerlarına yazar
+static inline void outb(uint16_t port, uint8_t val) {
+    __asm__ volatile ("outb %0, %1" : : "a"(val), "Nd"(port));
+}
 
 static SetupStage current_stage = STAGE_COUNTRY;
 static int button_press_depth = 0; // 3D Tuşun içeri gömülme derinliği (0-4 piksel)
