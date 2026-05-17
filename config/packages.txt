@@ -1,5 +1,15 @@
-# Wind OS Çekirdek Paket Dağıtım Listesi
+# =============================================================================
+# Wind OS Çekirdek Paket Dağıtım Listesi (Sky OS Engine Core Manifest)
+# =============================================================================
+
+# Temel Donanım ve Boot Katmanı
 base-system
+
+# Grafik Kullanıcı Arayüzü ve Pencere Yöneticisi
 wind-core-gui
+
+# Donanım Sürücüleri (Klavye, Fare Polling Alt Yapısı)
 mouse-polling-driver
+
+# Yapay Zeka Güdümlü Çekirdek Zamanlayıcısı (Neural Scheduler)
 ai-scheduler
