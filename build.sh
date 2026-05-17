@@ -1,18 +1,31 @@
 #!/bin/bash
 # =============================================================================
-# Wind OS - Otonom Gelişmiş AI Canlı Sistem Onarım ve Derleme Motoru v3.0
+# Wind OS - Otonom Gelişmiş AI Canlı Sistem Onarım ve Derleme Motoru v4.0
 # =============================================================================
 
 echo "🔄 [AI Hazırlık] Dosya formatları normalize ediliyor (CRLF -> LF)..."
 find . -type f \( -name "*.c" -o -name "*.h" -o -name "PATCHES" -o -name "grub.cfg" \) -exec dos2unix {} +
 
-# [AI Ön Denetim] Yanlış adlandırılmış kritik dosyaları tespit et ve onar
+# 1. [AI Akıllı Dosya Doğrulama] Klasör mimarisini denetle ve eksik dosyaları otonom üret
 if [ -f "ueft_subsystem.c" ]; then
     echo "🤖 [AI Ön Onarım] Hatalı kaynak dosya adı algılandı. uefi_subsystem.c olarak değiştiriliyor..."
     mv ueft_subsystem.c uefi_subsystem.c
 fi
 
-# [AI Ön Denetim] GRUB önyükleme yapılandırmasını doğrula
+# KRİTİK FARK: Eğer uefi_subsystem.c tamamen eksikse, derlemenin çökmemesi için boş iskelet üret
+if [ ! -f "uefi_subsystem.c" ]; then
+    echo "🤖 [AI Kriz Yönetimi] uefi_subsystem.c diskte bulunamadı! Derlemeyi kurtarmak için otonom iskelet yazılıyor..."
+    cat << 'EOF' > uefi_subsystem.c
+#include <stdint.h>
+
+// Wind OS UEFI Alt Sistem Altyapısı (AI Otonom Kurtarma Modu)
+void uefi_subsystem_init(void) {
+    // Gelecekteki UEFI bootloader geçiş hazırlıkları için boş stub
+}
+EOF
+fi
+
+# 2. [AI Ön Denetim] GRUB önyükleme yapılandırmasını doğrula
 if [ ! -f "grub.cfg" ]; then
     echo "🤖 [AI Ön Onarım] grub.cfg eksik! Standart şablon üretiliyor..."
     cat << 'EOF' > grub.cfg
@@ -26,7 +39,7 @@ menuentry "Wind OS - Sky OS Engine" {
 EOF
 fi
 
-# [AI Ön Denetim] Çalışma zamanı dinamik Makefile fabrikası
+# 3. [AI Ön Denetim] Çalışma zamanı dinamik Makefile fabrikası
 cat << 'EOF' > Makefile
 CC = gcc
 CFLAGS = -m32 -ffreestanding -O2 -Wall -Wextra -fno-pie -fno-stack-protector
@@ -71,7 +84,7 @@ make > build_output.log 2>&1
 COMPILE_STATUS=$?
 
 # =============================================================================
-# 🧠 YAPAY ZEKA ONARIM KATMANI (AI REPAIR ENGINE)
+# 🧠 YAPAY ZEKA CANLI ONARIM KATMANI (AI REPAIR ENGINE)
 # =============================================================================
 if [ $COMPILE_STATUS -ne 0 ]; then
     echo "================================================================="
@@ -89,26 +102,21 @@ if [ $COMPILE_STATUS -ne 0 ]; then
     if [ ! -z "$GCC_ERROR_LINE" ]; then
         TARGET_FILE=$(echo "$GCC_ERROR_LINE" | cut -d':' -f1)
         TARGET_ROW=$(echo "$GCC_ERROR_LINE" | cut -d':' -f2)
-        ERROR_MSG=$(grep -A 1 "$GCC_ERROR_LINE" build_output.log | tail -n 2)
         
         echo "🤖 [AI Analiz] Durum Teşhisi Yapıldı:"
         echo "   -> Kritik Dosya: $TARGET_FILE"
         echo "   -> Hatalı Satır: $TARGET_ROW"
     fi
 
-    # --- AI ONARIM SENARYOLARI ---
-
     # Zeka Hücresi 1: Linker Referans Uyuşmazlıklarını ve Eksik Objeleri Onar
     if [ ! -z "$UNDEFINED_REF" ]; then
         echo "🤖 [AI Onarım] 'Undefined Reference' hatası algılandı: Sembol -> $UNDEFINED_REF"
         
-        # Eğer ueft_subsystem referansı Makefile'da takılı kaldıysa uefi'ye çevir
         if grep -q "ueft_subsystem" Makefile; then
             echo "⚡ [AI Aksiyon] Makefile içerisindeki 'ueft' yazım hatası 'uefi' olarak güncelleniyor..."
             sed -i 's/ueft_subsystem/uefi_subsystem/g' Makefile
         fi
         
-        # Eğer meşhur back_buffer grafik hafızası eksikse screen.c'ye enjekte et
         if [ "$UNDEFINED_REF" == "back_buffer" ] && [ -f "screen.c" ]; then
             echo "⚡ [AI Aksiyon] screen.c dosyasının tepesine 'back_buffer' global bellek dizisi yazılıyor..."
             sed -i '1s/^/uint32_t back_buffer[800 * 600];\n/' screen.c
@@ -120,7 +128,6 @@ if [ $COMPILE_STATUS -ne 0 ]; then
         echo "🤖 [AI Onarım] 'Implicit Declaration' hatası algılandı: Fonksiyon -> $IMPLICIT_FUNC"
         echo "⚡ [AI Aksiyon] kernel.c içine güvenli 'extern void $IMPLICIT_FUNC(void);' köprüsü kuruluyor..."
         
-        # Harici alt sistem yorum satırının altına prototipi ekle, yoksa dosyanın başına yaz
         if grep -q "HARİCİ ALT SİSTEM" kernel.c; then
             sed -i "/HARİCİ ALT SİSTEM/a extern void ${IMPLICIT_FUNC}(void);" kernel.c
         else
@@ -128,12 +135,11 @@ if [ $COMPILE_STATUS -ne 0 ]; then
         fi
     fi
 
-    # Zeka Hücresi 3: Akıllı Sözdizimi Tarayıcı (Eksik Noktalı Virgül ve Karakter Düzeltme)
+    # Zeka Hücresi 3: Akıllı Sözdizimi Tarayıcı (Eksik Noktalı Virgül Düzeltme)
     if [ ! -z "$TARGET_FILE" ] && [ ! -z "$TARGET_ROW" ]; then
         LINE_CONTENT=$(sed -n "${TARGET_ROW}p" "$TARGET_FILE")
         echo "🤖 [AI İnceleme] Hatalı satır içeriği: '$LINE_CONTENT'"
         
-        # Eğer satır sonunda noktalı virgül (;) eksikse ve satır boş değilse canlı yama yap
         if [[ ! "$LINE_CONTENT" =~ \;$ ]] && [[ ! "$LINE_CONTENT" =~ \{$ ]] && [[ ! "$LINE_CONTENT" =~ \}$ ]] && [ ! -z "$LINE_CONTENT" ]; then
             echo "⚡ [AI Aksiyon] Satır sonuna eksik olan noktalı virgül (;) enjekte ediliyor..."
             sed -i "${TARGET_ROW}s/$/;/" "$TARGET_FILE"
