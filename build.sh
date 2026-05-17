@@ -39,10 +39,15 @@ echo "[4/4] ISO hiyerarşisi hazırlanıyor..."
 mkdir -p iso/boot/grub
 cp kernel.bin iso/boot/kernel.bin
 
-# grub.cfg dosyasını oluştur
+# grub.cfg dosyasını oluştur (GRUB Grafik Hatalarını Önleyen Güvenli Yapılandırma)
 cat << EOF > iso/boot/grub/grub.cfg
 set timeout=0
 set default=0
+
+# GRUB'ın grafik moduna geçmesini engelleyip metin modunda kalmasını sağlıyoruz
+set gfxmode=text
+insmod vbe
+insmod vga
 
 menuentry "Wind OS" {
     multiboot /boot/kernel.bin
