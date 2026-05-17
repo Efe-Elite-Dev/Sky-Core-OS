@@ -25,20 +25,20 @@ jobs:
           echo "HATA: setup.c veya setup.h ana dizinde bulunamadı!"
           exit 1
         fi
-        echo "Kurulum modülü dosyaları doğrulandı."
+        echo "Kurulum modülü kaynak dosyaları doğrulandı."
 
     - name: Wind OS Derleme Motorunu Ateşle (build.sh)
       run: |
         chmod +x build.sh
         ./build.sh
 
-    - name: Nihai ISO Bütünlük Kontrolü
+    - name: Nihai ISO İçi Dosya Doğrulama (Kritik Kontrol)
       run: |
         if [ ! -f "windos.iso" ]; then
-          echo "HATA: Kritik sistem hatası, windos.iso üretilemedi!"
+          echo "HATA: windos.iso üretilemedi!"
           exit 1
         fi
-        echo "Doğrulama Başarılı: windos.iso başarıyla mühürlendi."
+        echo "Doğrulama Başarılı: windos.iso imajı hazır."
 
     - name: ISO Çıktısını Artifact Olarak Kaydet
       uses: actions/upload-artifact@v4
