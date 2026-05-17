@@ -4,8 +4,8 @@ set -e
 
 echo "==> Sky OS Mimarisi ile Wind OS Derleniyor..."
 
-# 1. Önceki kalıntıları tertemiz yap
-rm -rf isodir windos.iso kernel.bin *.o
+# 1. Önceki kalıntıları tertemiz yap (Bulamazsa çökmesini engellemek için || true eklendi)
+rm -rf isodir windos.iso kernel.bin *.o || true
 
 # 2. ISO klasör mimarisini kusursuz kur
 mkdir -p isodir/boot/grub
@@ -31,10 +31,15 @@ gcc -m32 -ffreestanding -O2 -Wall -Wextra -c deb_subsystem.c -o deb_subsystem.o
 echo "==> Linker ile çekirdek birleştiriliyor..."
 gcc -m32 -T linker.ld -nostdlib -no-pie -o kernel.bin boot.o kernel.o gui.o exe_subsystem.o ai_subsystem.o mouse.o keyboard.o wind_subsystem.o screen.o idt.o deb_subsystem.o
 
-# 6. Dosyaları ISO'ya Aktar ve GRUB Ayarla
+# 6. Dosyaları ISO'ya Aktar ve GRUB Yapılandırmasını Taşı
 cp kernel.bin isodir/boot/kernel.bin
 
-cat << 'EOF' > isodir/boot/grub/grub.cfg
+# DİKKAT: Elle hazırladığımız zırhlı grub.cfg dosyasını direkt hedef klasöre kopyalıyoruz
+if [ -f grub.cfg ]; then
+    cp grub.cfg isodir/boot/grub/grub.cfg
+else
+    # Eğer ana dizinde grub.cfg yoksa script yedek olarak güvenli sürümü basar
+    cat << 'EOF' > isodir/boot/grub/grub.cfg
 set timeout=0
 set default=0
 menuentry "Wind OS - AI Core (Powered by Sky OS Engine)" {
@@ -42,6 +47,7 @@ menuentry "Wind OS - AI Core (Powered by Sky OS Engine)" {
     boot
 }
 EOF
+fi
 
 # 7. ISO'yu Hatasız Mühürle
 echo "==> grub-mkrescue ile nihai ISO basılıyor..."
