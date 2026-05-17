@@ -28,7 +28,7 @@ extern kernel_main
 
 start:
     cli                         ; Kesmeleri kapat
-    mov esp, stack_space        ; Stack göstergesini ayarla
+    mov esp, stack_top          ; DÜZELTME: Stack göstergesini 8KB'lık alanın en tepesine ayarla!
     
     push ebx                    ; Multiboot info yapısının adresini stack'e it (mboot parametresi)
     call kernel_main            ; C çekirdeğine atla
@@ -39,5 +39,6 @@ start:
 
 section .bss
 align 16
-stack_space:
+stack_bottom:
     resb 8192                   ; 8KB Güvenli Stack Alanı
+stack_top:                      ; Stack'in başlangıç (en üst) noktası
