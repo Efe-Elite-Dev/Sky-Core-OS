@@ -21,7 +21,7 @@ jobs:
         sudo apt-get update
         sudo DEBIAN_FRONTEND=noninteractive apt-get install -yq \
           nasm gcc mtools xorriso grub-pc-bin grub-efi-ia32-bin grub-efi-amd64-bin \
-          grub-common libisoburn-dev dos2unix grep sed awk curl jq
+          grub-common libisoburn-dev dos2unix grep sed gawk curl jq
 
     - name: Otonom AI Derleme ve Canlı Sistem Onarım Motorunu Çalıştır
       run: |
