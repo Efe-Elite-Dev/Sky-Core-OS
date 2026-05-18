@@ -1,14 +1,13 @@
 #include <stdint.h>
 #include <stddef.h>
 
-// Sistemlerin Başlatıcı Fonksiyon Bildirimleri
 void setup_init(void);
 void setup_handle_input(uint8_t scancode);
 
 uint16_t* const TEXT_VIDEO_MEMORY = (uint16_t*)0xB8000;
 int text_x = 0;
 int text_y = 0;
-int is_graphics_mode = 0; // 0 = SkyOS Metin Modu, 1 = WindOS Grafik Modu
+int is_graphics_mode = 0; 
 
 void clear_text_screen(void) {
     for (int i = 0; i < 80 * 25; i++) {
@@ -42,7 +41,7 @@ static inline uint8_t inb(uint16_t port) {
 void handle_cli_command(const char* cmd) {
     if (cmd[0] == 's' && cmd[1] == 's') {
         is_graphics_mode = 1;
-        setup_init(); // Wind OS Grafik Kurulumunu Ateşle!
+        setup_init(); 
     } else {
         print_string("\nBilinmeyen Komut! Kurulumu baslatmak icin 'ss' yazin.\nSkyOS> ");
     }
@@ -58,7 +57,7 @@ void kernel_main(void* mboot_ptr, uint32_t magic) {
     print_string("=======================================================================\n\n");
     print_string("[+] VGA Metin modu ekran surucusu: STABIL\n");
     print_string("[+] Donanimsal Kesme Korumasi (Anti-Guru Mode): AKTIF\n");
-    print_string("[+] Doğrudan Port Taramali Klavye Motoru Devrede.\n\n");
+    print_string("[+] Dogrudan Port Taramali Klavye Motoru Devrede.\n\n");
     print_string("Grafiksel Wind OS kurulumuna gecmek icin 'ss' yazip ENTER'a basin.\n\n");
     print_string("SkyOS> ");
 
@@ -66,13 +65,13 @@ void kernel_main(void* mboot_ptr, uint32_t magic) {
     int cmd_idx = 0;
 
     while (1) {
-        if (inb(0x64) & 1) { // Klavye portunda veri var mı?
+        if (inb(0x64) & 1) { 
             uint8_t scancode = inb(0x60);
             
             if (is_graphics_mode) {
-                setup_handle_input(scancode); // Grafik modunda girdiler kuruluma gider
+                setup_handle_input(scancode); 
             } else {
-                if (scancode == 0x1F) { // 'S' Tuşu scancode'u
+                if (scancode == 0x1F) { // 'S' Tuşu
                     if (cmd_idx < 2) { cmd_buffer[cmd_idx++] = 's'; print_string("s"); }
                 } else if (scancode == 0x1C) { // ENTER Tuşu
                     cmd_buffer[cmd_idx] = '\0';
