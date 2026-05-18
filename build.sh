@@ -1,122 +1,58 @@
 #!/bin/bash
-# ==============================================================================
-# 🌪️ Wind OS / Sky Core OS - MEGA BUILD ENGINE & BOOTSTRAPPER (v1.5)
-# ==============================================================================
-set -e
+set -e # Herhangi bir hata oluşursa betiği durdur
 
 echo "======================================================================"
-echo "🚀 WIND OS MEGA BUILD ENGINE BAŞLATILDI"
+echo "🚀 SKY CORE OS / WIND OS MEGA BUILD ENGINE"
 echo "======================================================================"
-echo "[+] Geçerli Konum: $(pwd)"
-echo "[+] Sistem Kaynakları Optimize Ediliyor (Büyük İmaj Desteği Aktif)..."
 
-# 1. Agresif Temizlik Aşaması
+# 1. Temizlik
 echo "[-] Eski derleme kalıntıları temizleniyor..."
-# Klasörleri ve tüm .o uzantılı binary kalıntıları kökten kazıyoruz
-rm -rf iso_root iso kernel.bin windos.iso build_output.log
-rm -f *.o
+rm -rf *.o os_image.iso iso_root
 
-# 2. Assembly Çekirdeğinin Derlenmesi
+# 2. Assembly Bootloader Derlemesi
 echo "[1] Çekirdek önyükleme mekanizması derleniyor (boot.asm)..."
-if [ -f "boot.asm" ]; then
-    nasm -f elf32 boot.asm -o boot.o
-    echo "    -> [OK] boot.o başarıyla üretildi."
-else
-    echo "    ❌ KRİTİK HATA: boot.asm ana dizinde bulunamadı!"
-    exit 1
-fi
+nasm -f elf32 boot.asm -o boot.o
 
-# 3. Temel C Modüllerinin Derlenmesi (Sıralama Garantili Standart Dizi)
-echo "[2] Temel Kernel ve Kurulum modülleri derleniyor..."
-# Sıralamanın bozulmaması için Associative Array yerine standart diziye çektik
-CORE_SRC_FILES=("kernel.c" "setup.c" "setup_ui.c")
-CORE_OBJS=""
+# 3. C Alt Sistemlerinin ve Kernelin Derlenmesi
+echo "[2] Çekirdek ve tüm alt sistemler derleniyor..."
 
-for src in "${CORE_SRC_FILES[@]}"; do
-    obj="${src%.c}.o"
-    if [ -f "$src" ]; then
-        echo "    -> Derleniyor: $src"
-        gcc -m32 -c "$src" -o "$obj" -std=gnu99 -ffreestanding -O2 -Wall -Wextra
-        CORE_OBJS="$CORE_OBJS $obj"
-    else
-        echo "    ❌ KRİTİK HATA: Ana modül eksik -> $src"
-        exit 1
-    fi
-done
+# Temel modüller
+gcc -m32 -c kernel.c -o kernel.o -ffreestanding -O2 -Wall -Wextra -fno-exceptions -fno-stack-protector
+gcc -m32 -c setup.c -o setup.o -ffreestanding -O2 -Wall -Wextra -fno-exceptions -fno-stack-protector
+gcc -m32 -c setup_ui.c -o setup_ui.o -ffreestanding -O2 -Wall -Wextra -fno-exceptions -fno-stack-protector
 
-# 4. Gelişmiş Alt Sistemlerin Dinamik ve Eksiksiz Derlenmesi (Mega Liste)
-echo "[3] Repodaki tüm gelişmiş alt sistemler zincire mühürleniyor..."
-SUBSYSTEMS=(
-    "gui"
-    "screen"
-    "mouse"
-    "keyboard"
-    "idt"
-    "wind_subsystem"
-    "exe_subsystem"
-    "ai_subsystem"
-    "deb_subsystem"
-    "uefi_subsystem"
-    "si_subsystem"
-)
+# Yeni eklenen donanım ve UI alt sistemleri
+gcc -m32 -c gui.c -o gui.o -ffreestanding -O2 -Wall -Wextra -fno-exceptions -fno-stack-protector
+gcc -m32 -c screen.c -o screen.o -ffreestanding -O2 -Wall -Wextra -fno-exceptions -fno-stack-protector
+gcc -m32 -c mouse.c -o mouse.o -ffreestanding -O2 -Wall -Wextra -fno-exceptions -fno-stack-protector
+gcc -m32 -c keyboard.c -o keyboard.o -ffreestanding -O2 -Wall -Wextra -fno-exceptions -fno-stack-protector
+gcc -m32 -c idt.c -o idt.o -ffreestanding -O2 -Wall -Wextra -fno-exceptions -fno-stack-protector
 
-OPTIONAL_OBJS=""
-for sys in "${SUBSYSTEMS[@]}"; do
-    if [ -f "${sys}.c" ]; then
-        echo "    [+] Alt Sistem Yakalandı: ${sys}.c derleniyor..."
-        gcc -m32 -c "${sys}.c" -o "${sys}.o" -std=gnu99 -ffreestanding -O2 -Wall -Wextra
-        OPTIONAL_OBJS="$OPTIONAL_OBJS ${sys}.o"
-    else
-        echo "    [-] Bilgi: ${sys}.c bu derlemede pas geçildi (Dosya yok)."
-    fi
-done
+# İleri düzey subsistemler
+gcc -m32 -c wind_subsystem.c -o wind_subsystem.o -ffreestanding -O2 -Wall -Wextra -fno-exceptions -fno-stack-protector
+gcc -m32 -c exe_subsystem.c -o exe_subsystem.o -ffreestanding -O2 -Wall -Wextra -fno-exceptions -fno-stack-protector
+gcc -m32 -c ai_subsystem.c -o ai_subsystem.o -ffreestanding -O2 -Wall -Wextra -fno-exceptions -fno-stack-protector
+gcc -m32 -c deb_subsystem.c -o deb_subsystem.o -ffreestanding -O2 -Wall -Wextra -fno-exceptions -fno-stack-protector
 
-# 5. Bağlama (Linker) Aşaması - MULTIBOOT DUYARLI SIRALAMA
-echo "[4] Tüm nesne dosyaları linker.ld şablonuna göre birleştiriliyor..."
-if [ -f "linker.ld" ]; then
-    # ÖNEMLİ: boot.o her zaman en başta olmalı ki multiboot header en üste mühürlensin!
-    ld -m elf_i386 -z noexecstack -T linker.ld -o kernel.bin boot.o $CORE_OBJS $OPTIONAL_OBJS
-    echo "    -> [OK] kernel.bin başarıyla mühürlendi."
-else
-    echo "    ❌ KRİTİK HATA: linker.ld bulunamadı!"
-    exit 1
-fi
+# 4. Bağlama (Linker) Aşaması
+echo "[3] Tüm nesne dosyaları linker.ld şablonuna göre birleştiriliyor..."
+ld -m elf_i386 -T linker.ld -o kernel.bin boot.o kernel.o setup.o setup_ui.o gui.o screen.o mouse.o keyboard.o idt.o wind_subsystem.o exe_subsystem.o ai_subsystem.o deb_subsystem.o
 
-# 6. ISO Dağıtım Havuzunun Hazırlanması (Klasör ismi iso_root olarak izole edildi)
-echo "[5] Canlı ISO yapısı ve GRUB önyükleme katmanı yapılandırılıyor..."
+# 5. Grub ISO Oluşturma
+echo "[4] Boot edilebilir ISO imajı paketleniyor..."
 mkdir -p iso_root/boot/grub
 cp kernel.bin iso_root/boot/kernel.bin
 
-# Vasiyet ettiğin fırtınalı temayı simüle eden GRUB yapılandırması
+# Basit bir grub.cfg oluşturma (Eğer yoksa)
 cat << EOF > iso_root/boot/grub/grub.cfg
-set timeout=3
+set timeout=0
 set default=0
 
-# Ekran kartı modu ayarları (VGA Çözünürlük Standartları)
-set gfxmode=1024x768x32
-set gfxpayload=keep
-
-menuentry "Wind OS / Sky Core OS v1.5 (Vortex Kernel)" {
+menuentry "Sky Core OS" {
     multiboot /boot/kernel.bin
     boot
 }
 EOF
 
-# 7. Büyük Boyutlu Medya Paketleme Aşaması
-echo "[6] Önyüklenebilir medya (windos.iso) oluşturuluyor..."
-grub-mkrescue -o windos.iso iso_root -- -volid "WINDOS_15" -as mkisofs -iso-level 3
-
-# Temizlik hamlesi: Geçici oluşturulan klasörü arkamızda iz bırakmamak için uçuruyoruz
-rm -rf iso_root
-
-if [ -f "windos.iso" ]; then
-    ISO_SIZE=$(du -h windos.iso | cut -f1)
-    echo "======================================================================"
-    echo "✅ BAŞARILI: Wind OS ISO imajı üretime hazır!"
-    echo "[+] Çıktı Dosyası: windos.iso"
-    echo "[+] İmaj Boyutu: $ISO_SIZE"
-    echo "======================================================================"
-else
-    echo "❌ HATA: ISO oluşturma motoru başarısız oldu!"
-    exit 1
-fi
+grub-mkrescue -o os_image.iso iso_root
+echo "[+] BAŞARILI: os_image.iso hazır aga!"
