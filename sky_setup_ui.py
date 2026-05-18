@@ -1,5 +1,5 @@
 import customtkinter as ctk
-from PIL import Image, ImageTk
+from PIL import Image
 import os
 
 class SkyCoreSetup(ctk.CTk):
@@ -11,23 +11,23 @@ class SkyCoreSetup(ctk.CTk):
         self.geometry("1024x768")
         self.resizable(False, False)
         
+        # Kurulum bitince ana işletim sistemini tetikleyecek köprü fonksiyonu
         self.on_setup_complete = on_complete_callback
         self.current_step = 1
         
-        # Ana Konteyner
+        # Ana Konteyner (Sky Core temasına uygun derin gece moru)
         self.main_frame = ctk.CTkFrame(self, fg_color="#1a122c")
         self.main_frame.pack(fill="both", expand=True)
         
-        # Görselleri Güvenli Yükleme Fonksiyonu
+        # Tasarladığın resimleri (pusula.png, 33.png, firtina.png) güvenli yükle
         self.load_assets()
         
-        # İlk ekranı getir
+        # İlk adımı çizerek başla
         self.show_step()
 
     def load_assets(self):
-        """ Yüklediğin imajları projenin asset havuzuna dahil eder """
+        """ Tasarladığın imajları projenin asset havuzuna dahil eder """
         self.assets = {}
-        # Eğer resimler klasördeyse yükle, yoksa çökmemesi için None bırak
         image_files = {
             "pusula": "pusula.png",
             "ay": "33.png",
@@ -66,7 +66,7 @@ class SkyCoreSetup(ctk.CTk):
         center_card.pack_propagate(False)
         center_card.pack(pady=30)
         
-        # Pusula İkonu Entegrasyonu
+        # Pusula İkonu Kontrolü
         if self.assets.get("pusula"):
             self.assets["pusula"].configure(size=(100, 100))
             logo_img = ctk.CTkLabel(center_card, image=self.assets["pusula"], text="")
@@ -74,7 +74,7 @@ class SkyCoreSetup(ctk.CTk):
         else:
             ctk.CTkLabel(center_card, text="🧭", font=("Arial", 60)).pack(pady=30)
             
-        msg_lbl = ctk.CTkLabel(center_card, text="İLK KURULUM EKRANI\nSisteme Hoş Geldiniz!", text_color="white", font=("Arial", 24, "bold"))
+        msg_lbl = ctk.CTkLabel(center_card, text="SKY CORE OS\nSisteme Hoş Geldiniz!", text_color="white", font=("Arial", 24, "bold"))
         msg_lbl.pack(pady=20)
         
         btn_frame = ctk.CTkFrame(center_card, fg_color="transparent")
@@ -120,7 +120,7 @@ class SkyCoreSetup(ctk.CTk):
         map_box = ctk.CTkFrame(right_panel, fg_color="#362958", width=410, height=220)
         map_box.pack_propagate(False)
         map_box.pack(pady=20)
-        ctk.CTkLabel(map_box, text="🗺️ [ TÜRKIYE HARİTASI AKTİF ]", font=("Arial", 16, "bold"), text_color="white").place(relx=0.5, rely=0.5, anchor="center")
+        ctk.CTkLabel(map_box, text="🗺️ [ TÜRKİYE HARİTASI AKTİF ]", font=("Arial", 16, "bold"), text_color="white").place(relx=0.5, rely=0.5, anchor="center")
         
         ctk.CTkLabel(right_panel, text="Konum: [Istanbul, Türkiye]", font=("Arial", 15), text_color="white").pack(pady=5)
         ctk.CTkLabel(right_panel, text="Bölge Saati: [GMT+03:00]", font=("Arial", 15), text_color="white").pack(pady=5)
@@ -139,7 +139,7 @@ class SkyCoreSetup(ctk.CTk):
         
         ctk.CTkLabel(center_panel, text="Giriş Bilgilerini Kontrol Edin.", font=("Arial", 18), text_color="white").pack(pady=20)
         
-        # Ay Logosu (33.png) Entegrasyonu
+        # Ay Logosu (33.png) Kontrolü
         if self.assets.get("ay"):
             self.assets["ay"].configure(size=(120, 120))
             moon_img = ctk.CTkLabel(center_panel, image=self.assets["ay"], text="")
@@ -152,7 +152,7 @@ class SkyCoreSetup(ctk.CTk):
         start_btn = ctk.CTkButton(center_panel, text="BAŞLAT", fg_color="#10ac84", hover_color="#1dd1a1", font=("Arial", 16, "bold"), width=280, height=45, command=self.next_step)
         start_btn.pack(side="bottom", pady=35)
 
-    # --- 4. EKRAN: YÜKLEDİĞİN SKETCH MASAÜSTÜ ŞEMASI ---
+    # --- 4. EKRAN: TASARLADIĞIN ÇEKMECELİ MASAÜSTÜ ---
     def render_step_4(self):
         self.main_frame.rowconfigure(0, weight=1)
         self.main_frame.rowconfigure(1, weight=0)
@@ -168,15 +168,15 @@ class SkyCoreSetup(ctk.CTk):
         weather_lbl = ctk.CTkLabel(weather_widget, text="🕒 26:03\nİstanbul, 18°C Çok Bulutlu", font=("Arial", 14, "bold"), text_color="white")
         weather_lbl.place(relx=0.5, rely=0.5, anchor="center")
         
-        # Sol sütun (Uygulamalar)
+        # Sol sütun uygulamaları
         left_box = ctk.CTkLabel(desktop_area, text="📷 Kamera\n🎨 Galeri\n🎵 Müzik", text_color="#a29bfe", font=("Arial", 13), justify="left")
         left_box.place(x=40, rely=0.4)
         
-        # Sağ sütun (Uygulamalar)
+        # Sağ sütun uygulamaları
         right_box = ctk.CTkLabel(desktop_area, text="💬 Mesajlar\n🖥️ Terminal\n📁 Dosyalar\n🗺️ Haritalar", text_color="#a29bfe", font=("Arial", 13), justify="right")
         right_box.place(relx=0.95, rely=0.4, anchor="ne")
 
-        # --- ÇEKMECELİ UYGULAMA ALANI ---
+        # --- ORTADAN ÇIKAN UYGULAMA ÇEKMECESİ ---
         self.app_drawer = ctk.CTkFrame(desktop_area, fg_color="#2d2942", border_color="#5f5380", border_width=2, corner_radius=15, width=600, height=380)
         self.app_drawer.place(relx=0.5, rely=0.58, anchor="center")
         
@@ -215,7 +215,7 @@ class SkyCoreSetup(ctk.CTk):
         )
         self.center_trigger_btn.pack(relx=0.5, rely=0.5, anchor="center")
         
-        # Sistemi tamamen başlatan sağ buton
+        # Sistemi tamamen başlatan sağ buton (CRITICAL FIX: Döngüyü kıran çıkış kapısı)
         launch_btn = ctk.CTkButton(taskbar, text="Sistemi Başlat 🚀", fg_color="#10ac84", hover_color="#1dd1a1", width=140, height=40, font=("Arial", 12, "bold"), command=self.finish_setup)
         launch_btn.pack(side="right", padx=20)
 
@@ -231,5 +231,6 @@ class SkyCoreSetup(ctk.CTk):
             self.show_step()
 
     def finish_setup(self):
+        # Arka plandaki mainloop'u güvenli şekilde sonlandırıp kapatıyoruz
         self.quit()
         self.destroy()
