@@ -1,40 +1,17 @@
-import customtkinter as ctk
-from sky_setup_ui import SkyCoreSetup
+// wind_subsystem.c - Wind OS / Sky Core OS Grafik Alt Sistemi (Saf C)
+#include <stdbool.h>
 
-class SkyKernelCore(ctk.CTk):
-    def __init__(self):
-        super().__init__()
-        
-        self.title("Sky Core OS v1.5 [vortex-kernel] - Active")
-        self.geometry("1024x768")
-        self.resizable(False, False)
-        
-        self.kernel_frame = ctk.CTkFrame(self, fg_color="#0f0a1c")
-        self.kernel_frame.pack(fill="both", expand=True)
-        
-        self.load_main_os_interface()
+// Dışarıdan çağrılacak ekran fonksiyonları prototipleri
+extern void draw_rectangle(int x, int y, int width, int height, unsigned int color);
+extern void draw_string(const char* text, int x, int y, unsigned int color);
 
-    def load_main_os_interface(self):
-        status_lbl = ctk.CTkLabel(
-            self.kernel_frame, 
-            text="🌪️ SKY CORE OS [ vortex-kernel v1.5 ] AKTIF\nSistem başarıyla ana belleğe yüklendi.", 
-            font=("Arial", 22, "bold"), 
-            text_color="#00d2d3"
-        )
-        status_lbl.pack(pady=60)
-        
-        terminal_view = ctk.CTkTextBox(self.kernel_frame, width=850, height=450, fg_color="black", text_color="#1dd1a1", font=("Consolas", 13))
-        terminal_view.pack(pady=10)
-        terminal_view.insert("0.0", "sky_core@vortex-kernel:~$ core_init --status SUCCESS\nsky_core@vortex-kernel:~$ Sihirbaz tamamlandı, ana döngü serbest bırakıldı.\nsky_core@vortex-kernel:~$ kernel_status: ONLINE\nsky_core@vortex-kernel:~$ ")
+// Wind Grafik Alt Sistemini Başlatma Fonksiyonu
+void init_wind_subsystem(void) {
+    // İleride buraya pencere yöneticisi (window manager) kodlarını ekleyeceksin
+    draw_string("Wind Subsystem [ONLINE]", 10, 10, 0x00FF00);
+}
 
-def run_main_system():
-    main_os = SkyKernelCore()
-    main_os.mainloop()
-
-if __name__ == "__main__":
-    # Önce sihirbazı çalıştır, kapandığı an kod alt satırdaki run_main_system'a akacak
-    wizard = SkyCoreSetup()
-    wizard.mainloop()
-    
-    # Döngü kırıldı, doğrudan çekirdeğe uçur:
-    run_main_system()
+// Pencereleri güncelleme döngüsü
+void update_wind_windows(void) {
+    // Pencere taşıma, kapatma ve render işlemleri buraya gelecek
+}
