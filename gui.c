@@ -1,6 +1,6 @@
 #include "gui.h"
 #include "setup.h"
-#include "screen.h" // Küresel draw_pixel_pure fonksiyonunu burası sağlar
+#include "screen.h" 
 
 void draw_rect_pure(int x, int y, int w, int h, uint8_t color) {
     for (int i = 0; i < h; i++) {
