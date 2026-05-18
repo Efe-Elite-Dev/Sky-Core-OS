@@ -111,7 +111,6 @@ void trigger_next_stage(void) {
 }
 
 void setup_init(void) {
-    // Portlar üzerinden donanımsal Mode 13h Grafik modunu açıyoruz
     outb(0x3C2, 0x63);
     uint8_t vga_regs[] = {
         0x5F, 0x4F, 0x50, 0x82, 0x54, 0x80, 0xBF, 0x1F,
