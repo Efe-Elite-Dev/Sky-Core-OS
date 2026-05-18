@@ -36,7 +36,10 @@ jobs:
       if: success()
       run: |
         echo "=== Wind OS Otomatik Test Laboratuvarı Başlatıldı ==="
-        timeout 5s qemu-system-i386 -cdrom windos.iso -nographic -serial stdio || true
+        
+        # -serial stdio çakışmasını -display none ve -serial mon:stdio ile tamamen çözdük
+        timeout 5s qemu-system-i386 -cdrom windos.iso -display none -serial mon:stdio || true
+        
         echo "[+] Test süresi tamamlandı. ISO başarıyla simüle edildi."
         echo "=== BAŞARILI: Çekirdek çökmeden boot döngüsünü tamamladı! ==="
 
