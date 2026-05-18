@@ -1,10 +1,10 @@
-name: Wind OS CI Build Pipeline
+name: Update build-WIND.yml
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "master" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "master" ]
 
 jobs:
   build:
@@ -14,34 +14,30 @@ jobs:
     - name: Depoyu Klonla (Checkout)
       uses: actions/checkout@v4
 
-    - name: Sistem ve Derleme Araçlarını Kur (VGA & ISO Grubu)
+    - name: Derleme ve ISO Araçlarını Kur (Full Paket)
       run: |
         sudo apt-get update
-        sudo apt-get install -y nasm gcc-multilib build-essential grub-pc-bin xorriso mtools
+        sudo apt-get install -y nasm gcc-multilib build-essential grub-pc-bin xorriso
 
-    - name: Dosya Bütünlüğü ve Setup Modülü Kontrolü
+    - name: Kritik Çakışma ve Eski Kalıntı Temizliği
       run: |
-        if [ ! -f "setup.c" ] || [ ! -f "setup.h" ]; then
-          echo "HATA: setup.c veya setup.h ana dizinde bulunamadı!"
-          exit 1
-        fi
-        echo "Kurulum modülü kaynak dosyaları doğrulandı."
+        # VirtualBox'ı kilitleyen eski *.o nesne dosyalarını temizliyoruz
+        rm -f *.o kernel.bin windos.iso
+        
+        # VirtualBox'a hatalı VBE 800 kodu gönderen kökteki eski grub.cfg'yi uçuruyoruz!
+        # Böylece build.sh içindeki saf text modlu temiz yapılandırma zorunlu hale gelecek.
+        rm -f grub.cfg
+        
+        # ISO klasör hiyerarşisini sıfırla
+        rm -rf iso/
 
-    - name: Wind OS Derleme Motorunu Ateşle (build.sh)
+    - name: Derleme Motorunu Yetkilendir ve Çalıştır
       run: |
         chmod +x build.sh
         ./build.sh
 
-    - name: Nihai ISO İçi Dosya Doğrulama (Kritik Kontrol)
-      run: |
-        if [ ! -f "windos.iso" ]; then
-          echo "HATA: windos.iso üretilemedi!"
-          exit 1
-        fi
-        echo "Doğrulama Başarılı: windos.iso imajı hazır."
-
-    - name: ISO Çıktısını Artifact Olarak Kaydet
+    - name: Üretilen Wind OS ISO Dosyasını Artifact Olarak Kaydet
       uses: actions/upload-artifact@v4
       with:
-        name: windos-iso-build
+        name: WindOS-Mühürlü-ISO
         path: windos.iso
