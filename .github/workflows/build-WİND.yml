@@ -1,4 +1,4 @@
-name: Update build-WIND.yml
+name: Sky Core OS Build Pipeline
 
 on:
   push:
@@ -7,45 +7,58 @@ on:
     branches: [ "main", "master" ]
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Depoyu Klonla (Checkout)
+    - name: Repo Kaynak Kodlarını Çek
       uses: actions/checkout@v4
 
-    - name: Derleme, ISO ve Test Araçlarını Kur
+    - name: Python 3.10 Kurulumu
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.10"
+
+    - name: Xvfb (Sanal Ekran Sürücüsü) Kurulumu
       run: |
         sudo apt-get update
-        sudo apt-get install -y nasm gcc-multilib build-essential grub-pc-bin xorriso mtools qemu-system-x86
+        sudo apt-get install -y xvfb python3-tk libxkbcommon-x11-0
 
-    - name: Kritik Çakışma ve Eski Kalıntı Temizliği
+    - name: Bağımlılıkları Yükle
       run: |
-        rm -f *.o kernel.bin windos.iso
-        rm -f grub.cfg
-        rm -rf iso/
+        python -m pip install --upgrade pip
+        pip install customtkinter pillow packaging PyInstaller
 
-    - name: Derleme Motorunu Yetkilendir ve Çalıştır
-      id: compile_step
+    - name: Sistem Dosyalarını Doğrula
       run: |
-        chmod +x build.sh
-        ./build.sh
-      continue-on-error: false
+        echo "📂 Dosya kontrolü yapılıyor..."
+        if [ ! -f "sky_kernel_core.py" ] || [ ! -f "sky_setup_ui.py" ]; then
+          echo "❌ HATA: Gerekli kaynak kod dosyaları eksik!"
+          exit 1
+        fi
+        echo "✅ Dosya bütünlüğü onaylandı."
 
-    - name: 🚀 Çekirdeği Otomatik Test Et (QEMU Çekirdek Doğrulama)
-      if: success()
+    - name: Sanal Ekran Üzerinde Kodu Test Et
       run: |
-        echo "=== Wind OS Otomatik Test Laboratuvarı Başlatıldı ==="
-        
-        # -serial stdio çakışmasını -display none ve -serial mon:stdio ile tamamen çözdük
-        timeout 5s qemu-system-i386 -cdrom windos.iso -display none -serial mon:stdio || true
-        
-        echo "[+] Test süresi tamamlandı. ISO başarıyla simüle edildi."
-        echo "=== BAŞARILI: Çekirdek çökmeden boot döngüsünü tamamladı! ==="
+        # GUI (Arayüz) kodlarının Actions üzerinde çökmeden test edilmesi için sanal ekran (xvfb) kullanıyoruz
+        xvfb-run --server-args="-screen 0 1024x768x24" python3 -c "
+        try:
+            import customtkinter as ctk
+            import sky_setup_ui
+            import sky_kernel_core
+            print('🔥 Sky Core OS Arayüz ve Modülleri Başarıyla Doğrulandı!')
+        except Exception as e:
+            print(f'❌ Hata çıktı: {e}')
+            exit(1)
+        "
 
-    - name: Üretilen Wind OS ISO Dosyasını Artifact Olarak Kaydet
-      if: success()
+    - name: Çalıştırılabilir Binary (Executable) Derle
+      run: |
+        # Projeyi tek parça bağımsız bir uygulama dosyasına dönüştürür
+        pyinstaller --onefile --noconsole sky_kernel_core.py
+
+    - name: Derlenen Çıktıyı Artifact Olarak Kaydet
       uses: actions/upload-artifact@v4
       with:
-        name: WindOS-Mühürlü-ISO
-        path: windos.iso
+        name: SkyCoreOS-v1.5-Build
+        path: dist/sky_kernel_core
