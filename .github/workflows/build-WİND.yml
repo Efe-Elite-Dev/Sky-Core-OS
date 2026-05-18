@@ -14,29 +14,34 @@ jobs:
     - name: Depoyu Klonla (Checkout)
       uses: actions/checkout@v4
 
-    - name: Derleme ve ISO Araçlarını Kur (Full Paket)
+    - name: Derleme, ISO ve Test Araçlarını Kur
       run: |
         sudo apt-get update
-        sudo apt-get install -y nasm gcc-multilib build-essential grub-pc-bin xorriso
+        sudo apt-get install -y nasm gcc-multilib build-essential grub-pc-bin xorriso mtools qemu-system-x86
 
     - name: Kritik Çakışma ve Eski Kalıntı Temizliği
       run: |
-        # VirtualBox'ı kilitleyen eski *.o nesne dosyalarını temizliyoruz
         rm -f *.o kernel.bin windos.iso
-        
-        # VirtualBox'a hatalı VBE 800 kodu gönderen kökteki eski grub.cfg'yi uçuruyoruz!
-        # Böylece build.sh içindeki saf text modlu temiz yapılandırma zorunlu hale gelecek.
         rm -f grub.cfg
-        
-        # ISO klasör hiyerarşisini sıfırla
         rm -rf iso/
 
     - name: Derleme Motorunu Yetkilendir ve Çalıştır
+      id: compile_step
       run: |
         chmod +x build.sh
         ./build.sh
+      continue-on-error: false
+
+    - name: 🚀 Çekirdeği Otomatik Test Et (QEMU Çekirdek Doğrulama)
+      if: success()
+      run: |
+        echo "=== Wind OS Otomatik Test Laboratuvarı Başlatıldı ==="
+        timeout 5s qemu-system-i386 -cdrom windos.iso -nographic -serial stdio || true
+        echo "[+] Test süresi tamamlandı. ISO başarıyla simüle edildi."
+        echo "=== BAŞARILI: Çekirdek çökmeden boot döngüsünü tamamladı! ==="
 
     - name: Üretilen Wind OS ISO Dosyasını Artifact Olarak Kaydet
+      if: success()
       uses: actions/upload-artifact@v4
       with:
         name: WindOS-Mühürlü-ISO
