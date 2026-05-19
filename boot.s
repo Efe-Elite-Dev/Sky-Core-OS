@@ -1,16 +1,29 @@
 section .multiboot
 align 4
-    MULTIBOOT_MAGIC    equ 0x1BADB002
-    ; Flagler: bit 0 (hizala) + bit 1 (bellek haritası) + bit 2 (grafik modu isteği)
-    MULTIBOOT_FLAGS    equ 0x00000007 
-    MULTIBOOT_CHECKSUM equ -(MULTIBOOT_MAGIC + MULTIBOOT_FLAGS)
+    MAGIC equ 0x1BADB002
+    FLAGS equ 0x03 ; Sadece sayfa hizalama ve hafıza bilgisi (Grafik KAPALI)
+    CHECKSUM equ -(MAGIC + FLAGS)
 
-    dd MULTIBOOT_MAGIC
-    dd MULTIBOOT_FLAGS
-    dd MULTIBOOT_CHECKSUM
+    dd MAGIC
+    dd FLAGS
+    dd CHECKSUM
 
-    ; EĞER BIT 2 AKTİFSE BU ALANLAR TAM OLARAK BU SIRAYLA OLMALIDIR:
-    dd 0          ; mode_type: 0 = Lineer Grafik Modu (VBE)
-    dd 1024       ; width (Genişlik)
-    dd 768        ; height (Yükseklik)
-    dd 32         ; depth (Renk derinliği - bpp)
+section .bss
+align 16
+stack_bottom:
+    resb 16384 ; Kernel için 16 KB temiz yığın alanı
+stack_top:
+
+section .text
+global _start
+extern kernel_main
+
+_start:
+    cli ; Kesmeleri kapat
+    mov esp, stack_top ; Stack'i ayarla
+
+    call kernel_main ; C koduna geç
+
+.hang:
+    hlt ; İşlemciyi uyut
+    jmp .hang
