@@ -12,7 +12,9 @@ typedef int            bool;
 
 #define SCREEN_WIDTH  800
 #define SCREEN_HEIGHT 600
-#define GRAPHICS_FRAMEBUFFER 0xA0000
+
+// Sabit 0xA0000 yerine ekran kartının gerçek adresini bu işaretçide tutacağız
+extern uint32_t* gfx_framebuffer;
 
 typedef enum {
     STATE_WELCOME,
@@ -28,7 +30,6 @@ typedef struct {
     bool wifi_connected;
 } SetupData;
 
-// Sadece extern olarak bırakıyoruz, bellekte yer ayırmıyoruz
 extern SystemState current_state;
 extern bool ai_hud_visible;
 extern SetupData os_setup_data;
