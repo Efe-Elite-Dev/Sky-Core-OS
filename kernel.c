@@ -2,7 +2,7 @@
  * ==============================================================================
  * 🌟 SKY CORE OS / WIND OS OPERATING SYSTEM 🌟
  * ==============================================================================
- * [Proje Kodu]: Sky Core OS (Saf Metin Modu Çekirdeği)
+ * [Proje Kodu]: Sky Core OS (Saf Metin Modu Çekirdeği - Linker Uyumlu)
  * [Mimari]: x86 Intel/AMD IA-32 Monolitik Çekirdek Standartları
  * [Derleme Hedefi]: 32-Bit Korumalı Mod (Protected Mode)
  * ==============================================================================
@@ -15,6 +15,10 @@
 uint16_t* const TEXT_VIDEO_MEMORY = (uint16_t*)0xB8000;
 int text_x = 0;
 int text_y = 0;
+
+// HATA DÜZELTİLDİ: Diğer dosyaların (kerror.c, vga_force.c) derlenirken 
+// aradığı ama artık kullanmadığımız grafik buffer değişkenini sembolik olarak tanımlıyoruz.
+uint32_t* GRAPHICS_FRAMEBUFFER = NULL;
 
 // Çakışma yaratmamak için sadece I/O fonksiyonu
 static inline uint8_t inb(uint16_t port) {
@@ -70,7 +74,7 @@ void kernel_main(void* mboot_ptr, uint32_t magic) {
     while (1) {
         if (inb(0x64) & 1) { 
             uint8_t scancode = inb(0x60);
-            (void)scancode; // Tuş basımları arka planda işlenebilir
+            (void)scancode; 
         }
         __asm__ volatile("hlt"); 
     }
