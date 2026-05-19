@@ -1,67 +1,11 @@
-name: Sky Core OS Build Pipeline
-
-on:
-  push:
-    branches: [ "main", "master" ]
-  pull_request:
-    branches: [ "main", "master" ]
-
+name: Vortex Kernel Build
+on: [push]
 jobs:
-  build-os:
+  build:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Repoyu Klonla
-      uses: actions/checkout@v4
-
-    - name: Derleme Araçlarını Kur (GCC, NASM & Standart ISO Araçları)
-      run: |
-        sudo apt-get update
-        # 2GB sınırımız olduğu için tüm grub kütüphanelerini (hem BIOS hem EFI altyapısını) eksiksiz kuruyoruz
-        sudo apt-get install -y gcc-multilib g++-multilib nasm make lld binutils grub-common grub-pc-bin xorriso mtools
-
-    - name: Çalıştırılabilir İzinleri Ver
-      run: chmod +x ./build.sh
-
-    - name: Çekirdeği Derle (Saf Terminal Modu)
-      run: ./build.sh
-
-    - name: Standart Full GRUB ISO Oluşturma
-      run: |
-        # ISO klasör yapısını hazırla
-        mkdir -p iso_root/boot/grub
-        
-        # Çekirdek .bin dosyasını kontrol et ve taşı
-        if [ -f bin/kernel.bin ]; then
-          cp bin/kernel.bin iso_root/boot/kernel.bin
-        elif [ -f kernel.bin ]; then
-          cp kernel.bin iso_root/boot/kernel.bin
-        else
-          echo "HATA: kernel.bin bulunamadı!" && exit 1
-        fi
-        
-        # GRUB Yapılandırması
-        cat << 'EOF' > iso_root/boot/grub/grub.cfg
-        set timeout=0
-        set default=0
-        menuentry "Sky Core OS v1.5" {
-            multiboot /boot/kernel.bin
-            boot
-        }
-        EOF
-        
-        # 2GB alanımız var, modülleri kırpmıyoruz! Standart tam kurulum yapıyoruz.
-        # Bu sayede eksik modül hatası vermesi imkansız hale geliyor.
-        grub-mkrescue -o skycore.iso iso_root
-        
-        echo "=== NİHAİ ISO BOYUTU ==="
-        du -sh skycore.iso
-
-    - name: Derleme Çıktılarını Arşivle (Artifact)
-      if: success()
-      uses: actions/upload-artifact@v4
-      with:
-        name: skycore-vortex-tui-iso
-        path: |
-          skycore.iso
-        if-no-files-found: error
+      - uses: actions/checkout@v3
+      - name: Build
+        run: |
+          gcc -c kernel.c -o kernel.o -ffreestanding -m32 -O2
+          # Linker ve ISO komutlarını buraya ekle
