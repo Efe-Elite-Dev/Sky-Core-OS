@@ -1,26 +1,56 @@
-bits 32                         ; 32-bit modda çalışacağımızı belirtiyoruz
+; ==============================================================================
+; WIND OS / SKY CORE OS v1.5 - Bootloader Arayüzü (boot.asm)
+; Mimari   : x86 (IA-32) - NASM Syntax
+; Özellik  : Multiboot 1 Standartlarına Uygun Grafik Modu Açıcı
+; Geliştirici: Feyzula Efe Tuna
+; ==============================================================================
+
+; Multiboot Tanımlamaları
+MBALIGN     equ  1 << 0            ; Sayfa sınırlarına göre hizala
+MEMINFO     equ  1 << 1            ; Bellek haritasını kernel'a bildir
+VIDEO_MODE  equ  1 << 2            ; Grafik (VBE) modunu zorunlu kıl
+FLAGS       equ  MBALIGN | MEMINFO | VIDEO_MODE
+MAGIC       equ  0x1BADB002        ; Önyükleyici sihirli numarası
+CHECKSUM    equ -(MAGIC + FLAGS)   ; Hata kontrol toplamı
+
 section .multiboot
-    align 4
-    dd 0x1BADB002               ; Multiboot sihirli numarası (GRUB bunu arar)
-    dd 0x00                     ; Flaglar (Şimdilik grafik modu vs. istemiyoruz, düz VGA)
-    dd - (0x1BADB002 + 0x00)    ; Checksum (GRUB doğrulaması için şart)
+align 4
+    dd MAGIC
+    dd FLAGS
+    dd CHECKSUM
+    
+    ; Grafik Modu İçin Ek Multiboot Parametreleri (Aga burası çok kritik!)
+    dd 0    ; mode_type: 0 = Doğrusal Grafik Modu (Linear Framebuffer)
+    dd 1024 ; width: Genişlik (Piksel)
+    dd 768  ; height: Yükseklik (Piksel)
+    dd 32   ; depth: Renk Derinliği (32-bit ARGB/XRGB)
+
+section .bss
+align 16
+stack_bottom:
+    resb 16384                     ; Kernel için 16 KiB güvenli Stack alanı
+stack_top:
 
 section .text
 global _start
-extern kernel_main              ; kernel.c içindeki ana fonksiyonumuz
+extern kernel_main                 ; kernel.c içerisindeki ana fonksiyon
 
 _start:
-    cli                         ; Kesmeleri (Interrupts) kapat
-    mov esp, stack_space        ; Stack pointer'ı ayarla
-    call kernel_main            ; C kodumuza zıpla
-    
-halt_loop:
-    hlt                         ; Eğer kernel_main'den dönerse işlemciyi uyut
-    jmp halt_loop
+    ; 1. Stack Pointer'ı güvenli alana taşı
+    mov esp, stack_top
 
-section .bss
-resb 8192                       ; 8KB'lık stack alanı ayır
-stack_space:
+    ; 2. Kesmeleri (Interrupts) geçici olarak kapat
+    cli
 
-; GitHub Actions'taki linker uyarısını çözen sihirli satır:
-section .note.GNU-stack noalloc noexec nowrite progbits
+    ; 3. GRUB'ın getirdiği Multiboot parametrelerini Stack'e bas
+    ; kernel_main(void *mboot_ptr, uint32_t magic) sırasına göre push'luyoruz
+    push eax                       ; Magic numara (0x2BADB002 gelmeli)
+    push ebx                       ; mboot_ptr (Ekran kartı bellek adresini barındıran yapı)
+
+    ; 4. Kernel dünyasına büyük adım!
+    call kernel_main
+
+.hang:
+    cli
+    hlt                            ; Kernel kapanırsa işlemciyi sonsuz uykuya al
+    jmp .hang
