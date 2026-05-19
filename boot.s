@@ -1,42 +1,48 @@
-; boot.asm - Sky-Core OS Multiboot Header & Entry Point
-MULTIBOOT_ALIGN     equ 1 << 0
-MULTIBOOT_MEMINFO   equ 1 << 1
-MULTIBOOT_GRAPHICS  equ 1 << 2  ; GRUB'a grafik modu açmasını söylüyoruz
-MULTIBOOT_FLAGS     equ MULTIBOOT_ALIGN | MULTIBOOT_MEMINFO | MULTIBOOT_GRAPHICS
-MULTIBOOT_MAGIC     equ 0x1BADB002
-MULTIBOOT_CHECKSUM  equ -(MULTIBOOT_MAGIC + MULTIBOOT_FLAGS)
+# boot.s - Sky-Core OS Multiboot Header & Entry Point (GNU Assembler Syntax)
+.intel_syntax noprefix
 
-section .multiboot
-align 4
-    dd MULTIBOOT_MAGIC
-    dd MULTIBOOT_FLAGS
-    dd MULTIBOOT_CHECKSUM
-    ; Grafik Ekran İstek Ayarları (800x600 32-bit renk)
-    dd 0
-    dd 800  ; Genişlik
-    dd 600  ; Yükseklik
-    dd 32   ; BPP
+# Multiboot Sabitleri
+.set MULTIBOOT_ALIGN,     1 << 0
+.set MULTIBOOT_MEMINFO,   1 << 1
+.set MULTIBOOT_GRAPHICS,  1 << 2  # GRUB'a grafik ekranı zorunlu kıl diyoruz
+.set MULTIBOOT_FLAGS,     MULTIBOOT_ALIGN | MULTIBOOT_MEMINFO | MULTIBOOT_GRAPHICS
+.set MULTIBOOT_MAGIC,     0x1BADB002
+.set MULTIBOOT_CHECKSUM,  -(MULTIBOOT_MAGIC + MULTIBOOT_FLAGS)
 
-section .text
-global _start
-extern kernel_main
+# Multiboot Başlığı (GRUB Ayarları)
+.section .multiboot
+.align 4
+    .long MULTIBOOT_MAGIC
+    .long MULTIBOOT_FLAGS
+    .long MULTIBOOT_CHECKSUM
+    # Ekran Çözünürlük ve LFB İstekleri
+    .long 0
+    .long 800   # Genişlik (Width)
+    .long 600   # Yükseklik (Height)
+    .long 32    # Renk Derinliği (BPP)
+
+# Giriş Noktası ve Çekirdek Bağlantısı
+.section .text
+.global _start
+.extern kernel_main
 
 _start:
     cli
-    mov esp, stack_top
+    mov esp, OFFSET stack_top   # Stack işaretçisini güvenli alana taşı
     
-    ; GRUB'ın bize verdiği boot parametrelerini C çekirdeğine argüman olarak paslıyoruz
-    push ebx         ; Multiboot bilgi yapısının adresi (MBI)
-    push eax         ; Sihirli numara (Magic Number)
+    # GRUB'ın donanımdan topladığı kritik verileri C çekirdeğine gönderiyoruz
+    push ebx                    # Multiboot Bilgi Yapısı adresi (MBI) -> kernel.c içerisindeki mbi[]
+    push eax                    # Boot Sihirli Numarası -> kernel.c içerisindeki magic
     
-    call kernel_main
+    call kernel_main            # C dilinde yazdığımız ana çekirdeği tetikle
     
 .halt:
-    hlt
+    hlt                         # Eğer çekirdekten çıkış olursa işlemciyi güvenli moda al
     jmp .halt
 
-section .bss
-align 16
+# Yığın (Stack) Bellek Alanı
+.section .bss
+.align 16
 stack_bottom:
-    resb 16384       ; 16KB Güvenli Stack Alanı
+    .skip 16384                 # 16KB Güvenli Stack Alanı ayır
 stack_top:
