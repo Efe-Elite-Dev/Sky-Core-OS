@@ -1,13 +1,40 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
-#define GRAPHICS_FRAMEBUFFER 0xA0000 
-typedef unsigned char uint8_t;
+// Temel Veri Tipleri
+typedef unsigned char  uint8_t;
 typedef unsigned short uint16_t;
-typedef unsigned int uint32_t;
-typedef int bool;
-#define true 1
+typedef unsigned int   uint32_t;
+typedef int            bool;
+
+#define true  1
 #define false 0
-#define NULL ((void*)0)
+#define NULL  ((void*)0)
+
+// Grafik Çözünürlüğü ve Framebuffer
+#define SCREEN_WIDTH  800
+#define SCREEN_HEIGHT 600
+#define GRAPHICS_FRAMEBUFFER 0xA0000 // Standart VGA/VBE Video Bellek Adresi
+
+// Sistem Durum Makinesi
+typedef enum {
+    STATE_WELCOME,
+    STATE_LOCATION,
+    STATE_COMPLETING,
+    STATE_DESKTOP
+} SystemState;
+
+extern SystemState current_state;
+extern bool ai_hud_visible;
+
+// Kurulum Veri Yapısı
+typedef struct {
+    char computer_name[64];
+    char location[64];
+    char timezone[16];
+    bool wifi_connected;
+} SetupData;
+
+extern SetupData os_setup_data;
 
 #endif
