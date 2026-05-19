@@ -1,27 +1,36 @@
-name: Sky-Core-OS Release
-on: [push]
+name: Sky-Core-OS Auto-Release
+
+on:
+  push:
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y nasm  # İŞTE EKSİK OLAN KISIM BU
+          sudo apt-get install -y nasm gcc-multilib
 
-      - name: Build System
+      - name: Fix Makefile Tab Issue
+        run: |
+          # Bu komut, Makefile içindeki boşlukları (8 boşluk) TAB ile değiştirir
+          sed -i 's/        /\t/g' Makefile
+
+      - name: Build OS
         run: |
           make clean
           make all
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
             kernel.bin
