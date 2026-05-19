@@ -1,32 +1,50 @@
 section .multiboot
 align 4
     MULTIBOOT_MAGIC    equ 0x1BADB002
-    MULTIBOOT_FLAGS    equ 0x00000007 ; Bit 0 (hizala) + Bit 1 (mem info) + Bit 2 (video)
+    MULTIBOOT_FLAGS    equ 0x00000007
     MULTIBOOT_CHECKSUM equ -(MULTIBOOT_MAGIC + MULTIBOOT_FLAGS)
 
-    ; 1. Magic (Offset 0)
     dd MULTIBOOT_MAGIC
-    ; 2. Flags (Offset 4)
     dd MULTIBOOT_FLAGS
-    ; 3. Checksum (Offset 8)
     dd MULTIBOOT_CHECKSUM
 
-    ; --- ZORUNLU PADDING (AOUT KLUDGE ALANLARI) ---
-    ; Bit 16 kapalı olsa bile GRUB'ın 32. byte'a kadar kaymaması için bu 5 alan SIFIR olmalıdır!
-    dd 0    ; header_addr   (Offset 12)
-    dd 0    ; load_addr     (Offset 16)
-    dd 0    ; load_end_addr (Offset 20)
-    dd 0    ; bss_end_addr  (Offset 24)
-    dd 0    ; entry_addr    (Offset 28)
+    ; Padding (Gereksiz ama GRUB offset hizalaması için zorunlu alanlar)
+    dd 0 ; header_addr
+    dd 0 ; load_addr
+    dd 0 ; load_end_addr
+    dd 0 ; bss_end_addr
+    dd 0 ; entry_addr
 
-    ; --- GRAFİK MODU ALANI (Tam olarak Offset 32'de olmak zorunda) ---
-    dd 0    ; mode_type (0 = Lineer VBE Modu)
-    dd 1024 ; width
-    dd 768  ; height
-    dd 32   ; depth (bpp)
+    ; Grafik Modu İstekleri
+    dd 0    ; mode_type (0 = VBE)
+    dd 1024 ; genişlik
+    dd 768  ; yükseklik
+    dd 32   ; renk derinliği
 
-; Buradan sonra normal kernel girişin başlayabilir
+; --- KESİN ÇÖZÜM: STACK ALANI TANIMLAMA ---
+section .bss
+align 16
+stack_bottom:
+    resb 16384 ; Kernel için 16 KB güvenli yığın alanı
+stack_top:
+
+; --- KERNEL GİRİŞ NOKTASI ---
+section .text
 global _start
+extern kernel_main ; kernel.c içindeki ana fonksiyonunun adı neyse (main veya kernel_main)
+
 _start:
-    cli
-    ; ...
+    cli ; 1. Kural: Bütün donanım kesmelerini kapat!
+
+    mov esp, stack_top ; 2. Kural: Stack Pointer'ı (esp) buraya eşitle!
+
+    ; GRUB'dan gelen Multiboot parametrelerini C koduna aktarmak istersen:
+    push ebx ; Multiboot info yapısı
+    push eax ; Multiboot magic numarası
+
+    ; Artık C dünyasına güvenle geçebiliriz
+    call kernel_main
+
+.hang:
+    hlt ; Eğer C kodundan çıkılırsa işlemciyi uykuya al
+    jmp .hang
