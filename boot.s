@@ -4,7 +4,7 @@
 # Multiboot Sabitleri
 .set MULTIBOOT_ALIGN,     1 << 0
 .set MULTIBOOT_MEMINFO,   1 << 1
-.set MULTIBOOT_GRAPHICS,  1 << 2  # GRUB'a grafik ekranı zorunlu kıl diyoruz
+.set MULTIBOOT_GRAPHICS,  1 << 2  
 .set MULTIBOOT_FLAGS,     MULTIBOOT_ALIGN | MULTIBOOT_MEMINFO | MULTIBOOT_GRAPHICS
 .set MULTIBOOT_MAGIC,     0x1BADB002
 .set MULTIBOOT_CHECKSUM,  -(MULTIBOOT_MAGIC + MULTIBOOT_FLAGS)
@@ -15,8 +15,16 @@
     .long MULTIBOOT_MAGIC
     .long MULTIBOOT_FLAGS
     .long MULTIBOOT_CHECKSUM
-    # Ekran Çözünürlük ve LFB İstekleri
-    .long 0
+    
+    # KRİTİK DÜZELTME: Grafik alanlarının 32. byte offsetine oturması için dolgu alanları
+    .long 0   # header_addr
+    .long 0   # load_addr
+    .long 0   # load_end_addr
+    .long 0   # bss_end_addr
+    .long 0   # entry_addr
+    
+    # Ekran Çözünürlük ve LFB İstekleri (Tam olarak doğru offsette!)
+    .long 0   # mode_type (0 = Lineer Grafik Modu)
     .long 800   # Genişlik (Width)
     .long 600   # Yükseklik (Height)
     .long 32    # Renk Derinliği (BPP)
@@ -28,21 +36,20 @@
 
 _start:
     cli
-    mov esp, OFFSET stack_top   # Stack işaretçisini güvenli alana taşı
+    mov esp, OFFSET stack_top   
     
-    # GRUB'ın donanımdan topladığı kritik verileri C çekirdeğine gönderiyoruz
-    push ebx                    # Multiboot Bilgi Yapısı adresi (MBI) -> kernel.c içerisindeki mbi[]
-    push eax                    # Boot Sihirli Numarası -> kernel.c içerisindeki magic
+    push ebx                    
+    push eax                    
     
-    call kernel_main            # C dilinde yazdığımız ana çekirdeği tetikle
+    call kernel_main            
     
 .halt:
-    hlt                         # Eğer çekirdekten çıkış olursa işlemciyi güvenli moda al
+    hlt                         
     jmp .halt
 
 # Yığın (Stack) Bellek Alanı
 .section .bss
 .align 16
 stack_bottom:
-    .skip 16384                 # 16KB Güvenli Stack Alanı ayır
+    .skip 16384                 
 stack_top:
