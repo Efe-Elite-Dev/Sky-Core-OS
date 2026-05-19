@@ -1,28 +1,15 @@
 ENTRY(_start)
 
-SECTIONS
-{
-    . = 1M;
+SECTIONS {
+    /* GRUB kernel'ları genelde 1MB (0x100000) noktasına yükler */
+    . = 0x100000; 
 
-    .text BLOCK(4K) : ALIGN(4K)
-    {
-        *(.multiboot)
-        *(.text*)
+    .text : {
+        *(.multiboot) /* Multiboot header en başta olmak ZORUNDA */
+        *(.text)
     }
 
-    .rodata BLOCK(4K) : ALIGN(4K)
-    {
-        *(.rodata*)
-    }
-
-    .data BLOCK(4K) : ALIGN(4K)
-    {
-        *(.data*)
-    }
-
-    .bss BLOCK(4K) : ALIGN(4K)
-    {
-        *(COMMON)
-        *(.bss*)
-    }
+    .rodata : { *(.rodata) }
+    .data   : { *(.data) }
+    .bss    : { *(.bss) }
 }
