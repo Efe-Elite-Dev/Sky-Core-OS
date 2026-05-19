@@ -10,17 +10,22 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install Compilers
-        run: sudo apt-get update && sudo apt-get install -y nasm gcc-multilib
-
-      - name: Compile and Link Complete OS
         run: |
-          # 1. Asm kaynaklarını derle
+          sudo apt-get update
+          sudo apt-get install -y nasm gcc-multilib
+
+      - name: Clean, Compile and Link Complete OS
+        run: |
+          # 1. Önbellekte kalan eski .o kalıntılarını ve eski binary'yi tamamen temizle
+          rm -f *.o kernel.bin
+          
+          # 2. Assembly kaynaklarını (bootloader/kernel giriş noktası) derle
           nasm -f elf32 boot.asm -o boot.o
           
-          # 2. Mevcut tüm C kaynaklarını çakışmasız derle
+          # 3. Klasördeki tüm C kaynak dosyalarını çakışmasız ve bağımsız olarak derle
           gcc -m32 -ffreestanding -O2 -Wall -Wextra -fno-pie -fno-stack-protector -c *.c
           
-          # 3. Bağla ve tek bir dosya haline getir
+          # 4. Tüm nesne (.o) dosyalarını linker script (linker.ld) ile kernel.bin olarak bağla
           ld -m elf_i386 -T linker.ld -o kernel.bin *.o
 
       - name: Generate Direct Output Release
