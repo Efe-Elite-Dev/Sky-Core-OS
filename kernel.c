@@ -34,8 +34,7 @@ uint16_t* const TEXT_VIDEO_MEMORY = (uint16_t*)0xB8000;
 int text_x = 0;
 int text_y = 0;
 
-// VIRTUALBOX UYUMU: Varsayılan adresi 0xE0000000 (VBox VBE Standardı) yapıyoruz,
-// eğer multiboot ile daha doğru bir adres gelirse aşağıda güncelleyeceğiz.
+// Sanal makineler için en kararlı Linear Framebuffer taban adresi
 uint32_t* GRAPHICS_FRAMEBUFFER = (uint32_t*)0xE0000000;
 int is_graphics_mode = 1; 
 
@@ -47,8 +46,7 @@ extern void setup_handle_input(uint8_t scancode);
 extern void force_graphics_hardware(void);
 extern void kpanic(uint8_t error_code, const char* message);
 
-// Çakışmaları engellemek için boş fonksiyonları tamamen güvenli hale getiriyoruz
-void idt_init(void) { __asm__ volatile("cli"); } // Gerçek kesme tabloları kurulana kadar kesmeleri kapat
+void idt_init(void) {} 
 void keyboard_init(void) {}
 void mouse_init(void) {}
 void wind_subsystem_init(void) {}
@@ -62,14 +60,22 @@ static inline uint8_t inb(uint16_t port) {
     return ret;
 }
 
+// Metin modu için güvenli temizleyici (Eğer grafik modu patlarsa log görebilmek için)
+void clear_text_screen(void) {
+    for (int i = 0; i < 80 * 25; i++) {
+        TEXT_VIDEO_MEMORY[i] = (0x0F << 8) | ' ';
+    }
+    text_x = 0;
+    text_y = 0;
+}
+
 void print_string(const char* str) {
-    if (is_graphics_mode) return; 
     while (*str) {
         if (*str == '\n') {
             text_x = 0;
             text_y++;
         } else {
-            TEXT_VIDEO_MEMORY[text_y * 80 + text_x] = (0x0F << 8) | *str;
+            TEXT_VIDEO_MEMORY[text_y * 80 + text_x] = (0x0E << 8) | *str; // Sarı metin
             text_x++;
             if (text_x >= 80) { text_x = 0; text_y++; }
         }
@@ -325,20 +331,25 @@ void regress_os_stage(void) {
 }
 
 void kernel_main(void* mboot_ptr, uint32_t magic) {
-    // MULTIBOOT DİNAMİK VBE ADRES DENETİMİ:
-    // Sanal makinenin ekran kartından gelen gerçek bellek adresini alıyoruz.
+    clear_text_screen();
+    print_string("Sky Core OS yukleniyor...\n");
+
+    // Multiboot VBE Kontrolü
     if (magic == 0x2BADB002 && mboot_ptr != NULL) {
         uint32_t flags = *(uint32_t*)mboot_ptr;
         if (flags & (1 << 11)) { 
             uint32_t* vbe_mode_info = (uint32_t*)((uint8_t*)mboot_ptr + 72);
             uint32_t real_fb_address = *vbe_mode_info;
-            if (real_fb_address != 0 && real_fb_address != 0xFD000000) {
+            if (real_fb_address != 0) {
                 GRAPHICS_FRAMEBUFFER = (uint32_t*)real_fb_address;
             }
         }
     }
 
-    force_graphics_hardware();
+    // Donanım zorlamasını VirtualBox uyumu için askıya alıyoruz veya kontrollü çağırıyoruz
+    // force_graphics_hardware(); 
+
+    print_string("Grafik alt yapisi kuruluyor...\n");
     for (volatile int delay = 0; delay < 2000000; delay++) { __asm__ volatile("pause"); }
 
     idt_init();
@@ -355,17 +366,17 @@ void kernel_main(void* mboot_ptr, uint32_t magic) {
     current_os_state = STATE_WELCOME;
     refresh_system_display();
 
+    // VIRTUALBOX POLING DÖNGÜSÜ: hlt kaldırıldı, böylece kilitlenme önlendi!
     while (1) {
         if (inb(0x64) & 1) { 
             uint8_t scancode = inb(0x60);
             if (is_graphics_mode) {
                 setup_handle_input(scancode); 
                 if (!(scancode & 0x80)) {
-                    if (scancode == 0x1C) advance_os_stage();       
-                    else if (scancode == 0x0E) regress_os_stage();  
+                    if (scancode == 0x1C) advance_os_stage();       // ENTER -> İleri
+                    else if (scancode == 0x0E) regress_os_stage();  // BACKSPACE -> Geri
                 }
             }
         }
-        __asm__ volatile("hlt"); 
     }
 }
