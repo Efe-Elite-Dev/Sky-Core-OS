@@ -1,47 +1,18 @@
-#include "wind_subsystem.h"
+#include "mouse.h"
 
-/* Fare Donanım Portları ve Durum Tanımlamaları */
-#define MOUSE_DATA_PORT 0x60
-#define MOUSE_STATUS_PORT 0x64
+// Mouse paket verileri
+static int mouse_x = 400, mouse_y = 300; 
 
-static int mouse_x_position = 400;
-static int mouse_y_position = 300;
+void mouse_handler() {
+    uint8_t status = inb(0x64);
+    if (!(status & 0x01)) return; // Veri yoksa çık
 
-/**
- * @brief Fare sürücüsünü ve ekran üzerindeki başlangıç koordinatlarını
- * hazırlar.
- */
-void init_mouse(void) {
-  mouse_x_position = 400;
-  mouse_y_position = 300;
-
-  // Fare donanımını etkinleştirmek için (PS/2) komut dizilimleri ileride buraya
-  // genişletilebilir
+    int8_t mouse_byte = inb(0x60);
+    // Burada 3 baytlık mouse paketini ayrıştırıp
+    // mouse_x ve mouse_y değerlerini güncellemen gerekiyor.
+    
+    // Örnek: mouse_x += byte2;
+    // Örnek: mouse_y -= byte3; 
+    
+    update_cursor_position(mouse_x, mouse_y);
 }
-
-/**
- * @brief Fare hareket verilerini port üzerinden sorgulayarak (polling) yakalar.
- */
-void handle_mouse_polling(void) {
-  uint8_t status = inb(MOUSE_STATUS_PORT);
-
-  if (status & 0x01) {
-    int8_t delta_x = (int8_t)inb(MOUSE_DATA_PORT);
-
-    mouse_x_position += delta_x;
-    if (mouse_x_position < 0)
-      mouse_x_position = 0;
-    if (mouse_x_position > 799)
-      mouse_x_position = 799;
-  }
-}
-
-/**
- * @brief Güncel fare X koordinatını döner.
- */
-int get_mouse_x(void) { return mouse_x_position; }
-
-/**
- * @brief Güncel fare Y koordinatını döner.
- */
-int get_mouse_y(void) { return mouse_y_position; }
