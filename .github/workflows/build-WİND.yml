@@ -11,17 +11,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # 1. Depodaki kodları workflow alanına çekiyoruz
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    # 2. 64-bit Ubuntu üzerinde 32-bit (m32) derleme yapabilmek için gerekli paketleri kuruyoruz
     - name: Install Multi-lib & Build Tools
       run: |
         sudo apt-get update
-        sudo apt-get install -y gcc-multilib build-essential nasm
+        sudo apt-get install -y gcc-multilib build-essential nasm xorriso grub-pc-bin
 
-    # 3. boot.o dosyasını oluşturuyoruz (asm veya S durumuna göre otomatik algılar)
     - name: Assemble Bootloader
       run: |
         if [ -f boot.asm ]; then
@@ -33,19 +30,27 @@ jobs:
           exit 1
         fi
 
-    # 4. kernel.c dosyasını derliyoruz
     - name: Compile Kernel
       run: |
         gcc -m32 -ffreestanding -fno-builtin -O2 -Wall -c kernel.c -o kernel.o
 
-    # 5. Bağlama (Link) aşaması (-z noexecstack uyarısı çözülmüş haliyle)
     - name: Link Binaries
       run: |
         ld -m elf_i386 -z noexecstack boot.o kernel.o -o kernel.bin
 
-    # 6. Başarıyla derlenen kernel.bin dosyasını GitHub üzerinden indirilebilir artifact olarak yüklüyoruz
-    - name: Upload Kernel Artifact
+    - name: Create ISO Structure and Build Image
+      run: |
+        mkdir -p iso/boot/grub
+        cp kernel.bin iso/boot/
+        if [ -f grub.cfg ]; then
+          cp grub.cfg iso/boot/grub/
+        else
+          echo 'menuentry "WindOS" { multiboot /boot/kernel.bin; boot }' > iso/boot/grub/grub.cfg
+        fi
+        grub-mkrescue -o WindOS.iso iso
+
+    - name: Upload ISO Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: WindOS-Kernel
-        path: kernel.bin
+        name: WindOS-ISO
+        path: WindOS.iso
