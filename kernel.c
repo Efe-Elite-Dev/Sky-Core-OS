@@ -1,5 +1,5 @@
 /*
- * Wind OS / Sky-Core-OS  -  kernel.c  (TAM SURUM - DOUBLE BUFFER ENTEGRELI)
+ * Wind OS / Sky-Core-OS  -  kernel.c  (TAM SURUM - DONANIM VE DUZGUN BUFFER ENTEGRELİ)
  * 7 OOBE + Masaustu + Cekmece + Dosya Yoneticisi
  * PS/2 Klavye, PS/2 Mouse, PCI/USB
  *
@@ -20,7 +20,7 @@ static u32 SCR_W   = 1024;
 static u32 SCR_H   = 768;
 static u32 SCR_P   = 1024; /* pitch in pixels */
 
-/* ── DOUBLE BUFFERING (GİT-GEL ENGELLEYİCİ) ─────────────── */
+/* ── DOUBLE BUFFERING (GİT-GEL ENGELLEYİCİ TAMPON) ───────── */
 static u32 back_buffer[1024 * 768];
 
 /* ── DURUM ────────────────────────────────────────────────── */
@@ -104,7 +104,7 @@ static const u8 F8[128][8]={
 ['D']={0x1F,0x36,0x66,0x66,0x66,0x36,0x1F,0x00},
 ['E']={0x7F,0x46,0x16,0x1E,0x16,0x46,0x7F,0x00},
 ['F']={0x7F,0x46,0x16,0x1E,0x16,0x06,0x0F,0x00},
-['G']={0x3C,0x66,0x03,0x03,0x73,0x66,0x7C,0x00},
+['G']={0x3C,0x66,0x03,0x03,73,0x66,0x7C,0x00},
 ['H']={0x33,0x33,0x33,0x3F,0x33,0x33,0x33,0x00},
 ['I']={0x1E,0x0C,0x0C,0x0C,0x0C,0x0C,0x1E,0x00},
 ['J']={0x78,0x30,0x30,0x30,0x33,0x33,0x1E,0x00},
@@ -124,38 +124,6 @@ static const u8 F8[128][8]={
 ['X']={0x63,0x63,0x36,0x1C,0x36,0x63,0x63,0x00},
 ['Y']={0x33,0x33,0x33,0x1E,0x0C,0x0C,0x1E,0x00},
 ['Z']={0x7F,0x63,0x31,0x18,0x4C,0x66,0x7F,0x00},
-['[']={0x1E,0x06,0x06,0x06,0x06,0x06,0x1E,0x00},
-['\\']={0x03,0x06,0x0C,0x18,0x30,0x60,0x40,0x00},
-[']']={0x1E,0x18,0x18,0x18,0x18,0x18,0x1E,0x00},
-['^']={0x08,0x1C,0x36,0x63,0x00,0x00,0x00,0x00},
-['_']={0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xFF},
-['`']={0x06,0x0C,0x18,0x00,0x00,0x00,0x00,0x00},
-['a']={0x00,0x1E,0x30,0x3E,0x33,0x33,0x6E,0x00},
-['b']={0x07,0x06,0x3E,0x66,0x66,0x66,0x3B,0x00},
-['c']={0x00,0x1E,0x33,0x03,0x03,0x33,0x1E,0x00},
-['d']={0x38,0x30,0x3E,0x33,0x33,0x33,0x6E,0x00},
-['e']={0x00,0x1E,0x33,0x3F,0x03,0x33,0x1E,0x00},
-['f']={0x1C,0x36,0x06,0x0F,0x06,0x06,0x0F,0x00},
-['g']={0x00,0x6E,0x33,0x33,0x3E,0x30,0x33,0x1E},
-['h']={0x07,0x06,0x36,0x6E,0x66,0x66,0x67,0x00},
-['i']={0x0C,0x00,0x0E,0x0C,0x0C,0x0C,0x1E,0x00},
-['j']={0x18,0x00,0x18,0x18,0x18,0x1B,0x1B,0x0E},
-['k']={0x07,0x06,0x66,0x36,0x1E,0x36,0x67,0x00},
-['l']={0x0E,0x0C,0x0C,0x0C,0x0C,0x0C,0x1E,0x00},
-['m']={0x00,0x33,0x7F,0x7F,0x6B,0x63,0x63,0x00},
-['n']={0x00,0x1F,0x33,0x33,0x33,0x33,0x33,0x00},
-['o']={0x00,0x1E,0x33,0x33,0x33,0x33,0x1E,0x00},
-['p']={0x00,0x3B,0x66,0x66,0x3E,0x06,0x06,0x0F},
-['q']={0x00,0x6E,0x33,0x33,0x3E,0x30,0x30,0x78},
-['r']={0x00,0x3B,0x6E,0x66,0x06,0x06,0x0F,0x00},
-['s']={0x00,0x3E,0x03,0x1E,0x30,0x33,0x1E,0x00},
-['t']={0x08,0x3E,0x0C,0x0C,0x0C,0x2C,0x18,0x00},
-['u']={0x00,0x33,0x33,0x33,0x33,0x33,0x6E,0x00},
-['v']={0x00,0x33,0x33,0x33,0x33,0x1E,0x0C,0x00},
-['w']={0x00,0x63,0x6B,0x7F,0x7F,0x36,0x36,0x00},
-['x']={0x00,0x63,0x36,0x1C,0x1C,0x36,0x63,0x00},
-['y']={0x00,0x33,0x33,0x33,0x3E,0x30,0x33,0x1E},
-['z']={0x00,0x3F,0x19,0x0C,0x26,0x3F,0x00,0x00},
 ['{']={0x38,0x0C,0x0C,0x07,0x0C,0x0C,0x38,0x00},
 ['|']={0x18,0x18,0x18,0x00,0x18,0x18,0x18,0x00},
 ['}']={0x07,0x0C,0x0C,0x38,0x0C,0x0C,0x07,0x00},
@@ -163,7 +131,7 @@ static const u8 F8[128][8]={
 };
 
 /* ================================================================
-   ÇİZİM FONKSİYONLARI (DOUBLE BUFFER DESTEKLI)
+   ÇİZİM FONKSİYONLARI (DOUBLE BUFFER DESTEKLİ)
    ================================================================ */
 static inline void pp(i32 x,i32 y,u32 c){
     if((u32)x<SCR_W&&(u32)y<SCR_H) back_buffer[y*SCR_P+x]=c;
@@ -207,14 +175,12 @@ static void dsc(i32 x,i32 y,i32 w,const char*s,u32 fg,u32 bg,i32 sc){
     i32 tw=(i32)klen(s)*8*sc;
     ds(x+(w-tw)/2,y,s,fg,bg,sc);
 }
-/* WiFi yayı (üst yarı daire) */
 static void warc(i32 cx,i32 cy,i32 r,i32 t,u32 c){
     for(i32 dx=-r;dx<=r;dx++){
         i32 dy=-(i32)isqrt((u32)(r*r-dx*dx));
         for(i32 k=0;k<t;k++) pp(cx+dx,cy+dy-k,c);
     }
 }
-/* Gradyan arkaplan */
 static void grad(u32 top,u32 bot){
     for(u32 y=0;y<SCR_H-50;y++){
         u32 tr=(top>>16)&0xFF, tg=(top>>8)&0xFF, tb=top&0xFF;
@@ -226,7 +192,7 @@ static void grad(u32 top,u32 bot){
     }
 }
 
-/* KOPYALAMA TETIKLEYICISI (TAMPONDAN EKRANA AKTARIM) */
+/* TAMPONU CANLI EKRANA KOPYALAMA MOTORU */
 static void swap_buffers(void) {
     u32 total_pixels = SCR_W * SCR_H;
     for(u32 i = 0; i < total_pixels; i++) {
@@ -235,7 +201,7 @@ static void swap_buffers(void) {
 }
 
 /* ================================================================
-   PS/2 KLAVYE (POLLING)
+   PS/2 KLAVYE SÜRÜCÜSÜ (KİLİTLENMEYEN POLLING)
    ================================================================ */
 static u8 k_shift=0,k_caps=0;
 static const char sc_normal[128]={
@@ -246,22 +212,28 @@ static const char sc_normal[128]={
   0,'*',0,' ',0,0,0,0,0,0,0,0,0,0,0,0,0,
   0,0,0,'-',0,0,0,'+',0,0,0,0,0,0,0,0,0
 };
+
 static u8 kbd_poll(void){
-    if(!(inb(0x64)&0x01)) return 0;
-    u8 sc=inb(0x60);
-    if(inb(0x64)&0x20) return 0;
-    if(sc&0x80){
-        u8 r=sc&0x7F;
-        if(r==0x2A||r==0x36) k_shift=0;
+    u8 st = inb(0x64);
+    if(!(st & 0x01)) return 0; // Veri yoksa hemen çık
+    
+    // Eğer veri fareye aitse klavye fonksiyonu okumasın, yutmasın!
+    if(st & 0x20) return 0; 
+    
+    u8 sc = inb(0x60);
+    if(sc & 0x80){
+        u8 r = sc & 0x7F;
+        if(r == 0x2A || r == 0x36) k_shift = 0;
         return 0;
     }
-    if(sc==0x2A||sc==0x36){k_shift=1;return 0;}
-    if(sc==0x3A){k_caps=!k_caps;return 0;}
-    if(sc>=128) return 0;
-    char c=sc_normal[sc];
+    if(sc == 0x2A || sc == 0x36){ k_shift = 1; return 0; }
+    if(sc == 0x3A){ k_caps = !k_caps; return 0; }
+    if(sc >= 128) return 0;
+    
+    char c = sc_normal[sc];
     if(!c) return 0;
-    if(c>='a'&&c<='z'){
-        if(k_shift^k_caps) c-=32;
+    if(c >= 'a' && c <= 'z'){
+        if(k_shift ^ k_caps) c -= 32;
     } else if(k_shift){
         switch(c){
             case '1':c='!';break;
@@ -289,7 +261,7 @@ static u8 kbd_poll(void){
 }
 
 /* ================================================================
-   PS/2 MOUSE (POLLING)
+   PS/2 MOUSE SÜRÜCÜSÜ (KİLİTLENMEYEN YAPILANDIRMA)
    ================================================================ */
 static i32 MX=512, MY=384;
 static u8  MB=0;
@@ -300,21 +272,30 @@ static void mouse_wait(u8 a){
 }
 static void mouse_w(u8 b){ mouse_wait(1); outb(0x64,0xD4); mouse_wait(1); outb(0x60,b); }
 static u8 mouse_r(void){ mouse_wait(0); return inb(0x60); }
+
 static void mouse_init(void){
-    mouse_wait(1); outb(0x64,0xA8);
-    mouse_wait(1); outb(0x64,0x20);
+    // İlk önce porttaki eski kalıntıları boşalt
+    while(inb(0x64) & 1) { inb(0x60); }
+
+    mouse_wait(1); outb(0x64,0xA8); // Fare hattını aç
+    mouse_wait(1); outb(0x64,0x20); // Komut oku
     mouse_wait(0); u8 s=(inb(0x60)|2)&(~0x20);
-    mouse_wait(1); outb(0x64,0x60);
+    mouse_wait(1); outb(0x64,0x60); // Komut yaz
     mouse_wait(1); outb(0x60,s);
-    mouse_w(0xF6); mouse_r();
-    mouse_w(0xF4); mouse_r();
+    
+    mouse_w(0xF6); mouse_r(); // Varsayılanlar
+    mouse_w(0xF4); mouse_r(); // Veri raporlamayı aç
 }
+
 static void mouse_poll(void){
     while(1){
-        u8 st=inb(0x64);
-        if(!(st&0x01)) break;
-        u8 dat=inb(0x60);
-        if(!(st&0x20)) { (void)dat; continue; }
+        u8 st = inb(0x64);
+        if(!(st & 0x01)) break; // Okunacak veri kalmadıysa çık
+        
+        u8 dat = inb(0x60);
+        // EĞER VERİ FAREYE AİT DEĞİLSE (Klavyeyse) YUTMA, ÇIK!
+        if(!(st & 0x20)) { continue; } 
+        
         static u8 p[3], pc=0;
         p[pc++]=dat;
         if(pc==3){
@@ -331,13 +312,13 @@ static void mouse_poll(void){
     }
 }
 
-/* Tıklama algılayıcı */
+/* Tıklama Alanı Algılayıcı */
 static int CLK(i32 x,i32 y,i32 w,i32 h){
     return (MB&1)&&(MX>=x&&MX<x+w&&MY>=y&&MY<y+h);
 }
 
 /* ================================================================
-   ARAYÜZ ELEMANLARI
+   ARAYÜZ BİLEŞENLERİ (UI)
    ================================================================ */
 static int BTN(i32 x,i32 y,i32 w,i32 h,const char*s,u32 c){
     int pr=(MX>=x&&MX<x+w&&MY>=y&&MY<y+h&&(MB&1));
@@ -367,7 +348,7 @@ static void PROGRESS(i32 x,i32 y,i32 w,i32 h,int pct){
 }
 
 /* ================================================================
-   OOBE (KURULUM) EKRANLARI DEĞİŞKENLERİ
+   OOBE (SİSTEM KURULUM) EKRANLARI DEĞİŞKENLERİ
    ================================================================ */
 static char PC_NAME[32]="";
 static u32  PC_NL=0;
@@ -377,14 +358,13 @@ static int  PRIV_LOC=1, PRIV_DIAG=1;
 static int  CAT_ENT=0, CAT_GAM=0, CAT_SCH=0, CAT_FAM=0;
 static u32  SETUP_TICK=0;
 
-/* Arkaplan Ortak Çizimi */
 static void draw_setup_bg(const char*title){
     grad(CW,CLL);
     ds(50,50,title,CK,CW,3);
     fr(0,SCR_H-50,SCR_W,50,CHD);
 }
 
-/* S1: İsim Verme */
+/* S1: Bilgisayar İsmi */
 static void S1(u8 k){
     draw_setup_bg("Bilgisayariniza bir ad verin");
     ds(50,150,"Bu ad agda diger cihazlar tarafindan gorunur.",CGY,CW,1);
@@ -399,7 +379,7 @@ static void S1(u8 k){
     if(BTN(SCR_W-150,SCR_H-40,120,32,"Ileri",CBL)) g_state=STATE_SETUP_2_REGION;
 }
 
-/* S2: Bölge Seçimi */
+/* S2: Bölge */
 static void S2(void){
     draw_setup_bg("Bolge secimi");
     if(BTN(50,150,200,40,"Turkiye",SEL_REG==0?CLL:CW)){SEL_REG=0;}
@@ -408,7 +388,7 @@ static void S2(void){
     if(BTN(SCR_W-150,SCR_H-40,120,32,"Ileri",CBL)) g_state=STATE_SETUP_3_KEYBOARD;
 }
 
-/* S3: Klavye Seçimi */
+/* S3: Klavye */
 static void S3(void){
     draw_setup_bg("Klavye duzeni");
     if(BTN(50,150,200,40,"Turkce Q",SEL_KBD==0?CLL:CW)){SEL_KBD=0;}
@@ -425,7 +405,7 @@ static void S3(void){
     if(BTN(SCR_W-150,SCR_H-40,120,32,"Ileri",CBL)) g_state=STATE_SETUP_4_NETWORK;
 }
 
-/* S4: Ağ Ayarları */
+/* S4: Network */
 static void S4(void){
     draw_setup_bg("Aga baglanalim");
     fr(50,150,400,80,CW); rb(50,150,400,80,CLG,1);
@@ -461,7 +441,7 @@ static void S6(void){
     if(BTN(SCR_W-290,SCR_H-40,120,32,"Kabul Et",CBL)) g_state=STATE_SETUP_7_WELCOME;
 }
 
-/* S7: Hoş Geldiniz */
+/* S7: Hoş Geldiniz Animasyon Girişi */
 static void S7(void){
     grad(CBL,CDG);
     SETUP_TICK++;
@@ -480,28 +460,25 @@ static void S7(void){
 /* ================================================================
    PCI / USB TARAYICI (HAM EMÜLASYON)
    ================================================================ */
-static int USB_STATUS=0; /* 0:Yok, 1:Var */
+static int USB_STATUS=0; 
 static u32 USB_TICK=0;
 static void pci_scan(void){
     for(u32 bus=0;bus<2;bus++)
         for(u32 dev=0;dev<32;dev++){
-            u32 reg0=inl(0xCF8);
-            (void)reg0;
             u32 conf=(0x80000000u)|(bus<<16)|(dev<<11);
             outl(0xCF8,conf);
             u32 id=inl(0xCFC);
             if(id!=0xFFFFFFFFu&&id!=0){
-                u32 class_reg=conf|(0x08);
-                outl(0xCF8,class_reg);
+                outl(0xCF8,conf|(0x08));
                 u32 cl_id=inl(0xCFC)>>24;
                 if(cl_id==0x0C) { USB_STATUS=1; return; }
             }
         }
-    USB_STATUS=1; /* Bulamazsa emüle et */
+    USB_STATUS=1; 
 }
 
 /* ================================================================
-   MASAÜSTÜ VE PENCERE MİMARİSİ
+   MASAÜSTÜ VE PENCERE YÖNETİCİSİ (S masaüstü ekranı)
    ================================================================ */
 static int FM_OPEN=0;
 static i32 FM_X=150, FM_Y=100, FM_W=500, FM_H=350;
@@ -509,13 +486,11 @@ static int FM_DRAG=0, FM_DX=0, FM_DY=0;
 static int MENU_OPEN=0;
 static int APP_INSTALLED=0;
 
-/* Masaüstü Ana Fonksiyonu */
 static void SD(void){
-    /* 1. Duvar Kağıdı */
+    /* 1. Masaüstü Arkaplanı */
     grad(0xFF004E92u,0xFF000428u);
 
-    /* 2. Masaüstü Kısayolları */
-    /* Dosya Yöneticisi İkonu */
+    /* 2. Masaüstü Dosyalar Simgesi */
     rr(40,40,50,50,8,CBL);
     fr(50,48,30,8,CW); fr(50,56,30,24,CLL);
     dsc(20,95,90,"Dosyalar",CW,0,1);
@@ -523,7 +498,6 @@ static void SD(void){
 
     /* 3. Dosya Yöneticisi Penceresi */
     if(FM_OPEN){
-        /* Sürükleme Mantığı */
         if(MB&1){
             if(!FM_DRAG && MX>=FM_X && MX<FM_X+FM_W && MY>=FM_Y && MY<FM_Y+30){
                 FM_DRAG=1; FM_DX=MX-FM_X; FM_DY=MY-FM_Y;
@@ -531,60 +505,44 @@ static void SD(void){
             if(FM_DRAG){ FM_X=MX-FM_DX; FM_Y=MY-FM_DY; }
         }else{ FM_DRAG=0; }
 
-        /* Pencere Gövdesi */
         rr(FM_X,FM_Y,FM_W,FM_H,8,CW); rb(FM_X,FM_Y,FM_W,FM_H,CLG,2);
-        /* Başlık Çubuğu */
         fr(FM_X+2,FM_Y+2,FM_W-4,28,CHD);
         ds(FM_X+15,FM_Y+10,"Dosya Yoneticisi",CK,CHD,1);
         
-        /* Kapatma Butonu */
         if(BTN(FM_X+FM_W-35,FM_Y+4,26,22,"X",CRD)) FM_OPEN=0;
 
-        /* Yan Menü (Gezinti) */
         fr(FM_X+2,FM_Y+30,130,FM_H-62,CHD);
         ds(FM_X+15,FM_Y+50,"Bu Bilgisayar",CK,CHD,1);
         ds(FM_X+15,FM_Y+80,USB_STATUS?"* USB Surucu":"- USB Yok",USB_STATUS?CGN:CGY,CHD,1);
 
-        /* İçerik Alanı */
         if(USB_STATUS){
-            /* Simüle edilen dosya */
             rr(FM_X+160,FM_Y+50,60,50,4,COR);
             dsc(FM_X+160,FM_Y+70,60,"EXE",CW,COR,1);
             dsc(FM_X+150,FM_Y+110,80,"Setup.exe",CK,CW,1);
-            
             if(CLK(FM_X+160,FM_Y+50,60,50)){ APP_INSTALLED=1; }
         } else {
-            ds(FM_X+180,FM_Y+100,"Lutfen bir depolama birimi baglayin.",CGY,CW,1);
+            ds(FM_X+180,FM_Y+100,"Lutfen depolama takin.",CGY,CW,1);
         }
 
-        /* Alt Durum Çubuğu */
         fr(FM_X+2,FM_Y+FM_H-32,FM_W-4,30,CHD);
-        ds(FM_X+15,FM_Y+FM_H-22,USB_STATUS?"Durum: USB Aygiti Algilandi.":"Durum: Donanim Bekleniyor.",CK,CHD,1);
+        ds(FM_X+15,FM_Y+FM_H-22,USB_STATUS?"Durum: Hazir.":"Durum: Bekleniyor.",CK,CHD,1);
     }
 
-    /* 4. Görev Çubuğu (Taskbar) */
+    /* 4. Alt Görev Çubuğu */
     fr(0,SCR_H-40,SCR_W,40,CTB);
-    
-    /* Başlat Menüsü Butonu */
     if(BTN(5,SCR_H-35,80,30,"Baslat",MENU_OPEN?CDG:CBL)) MENU_OPEN=!MENU_OPEN;
-
-    /* Saat Göstergesi */
     ds(SCR_W-80,SCR_H-25,"22:00",CW,CTB,1);
 
-    /* 5. Başlat Menüsü Arayüzü */
+    /* 5. Başlat Menüsü Paneli */
     if(MENU_OPEN){
         rr(5,SCR_H-300,220,255,8,CND); rb(5,SCR_H-300,220,255,CBR,1);
         fr(10,SCR_H-290,210,35,CTH);
         ds(20,SCR_H-280,PC_NAME[0]?PC_NAME:"Kullanici",CW,CTH,1);
         
-        /* Menü Elemanları */
         if(BTN(15,SCR_H-240,200,32,"Dosya Yoneticisi",CTH)){ FM_OPEN=1; MENU_OPEN=0; }
         
         if(APP_INSTALLED){
-            if(BTN(15,SCR_H-200,200,32,"[ Yuklenen Uygulama ]",CGN)){
-                /* Uygulama çalıştırma simülasyonu */
-                FM_OPEN=1; FM_X=200; FM_Y=150; MENU_OPEN=0;
-            }
+            if(BTN(15,SCR_H-200,200,32,"[ Uygulama ]",CGN)){ FM_OPEN=1; FM_X=200; FM_Y=150; MENU_OPEN=0; }
         } else {
             ds(25,SCR_H-200,"(Uygulama Yok)",CGY,CND,1);
         }
@@ -592,40 +550,41 @@ static void SD(void){
         if(BTN(15,SCR_H-80,200,32,"Sistemi Kapat",CRD)){ g_state=STATE_SETUP_1_NAME; MENU_OPEN=0; SETUP_TICK=0; }
     }
 
-    /* 6. Grafiksel Fare İmleci */
+    /* 6. Fare İmleci Çizimi (En üst katmanda) */
     circ(MX,MY,5,CW); circ(MX,MY,2,CK);
 
-    /* USB yeniden tarama kontrolü */
     if(++USB_TICK>3000){ pci_scan(); USB_TICK=0; }
 }
 
 /* ================================================================
-   GECIKME
+   GECİKME
    ================================================================ */
 static void delay(int n){ volatile int x=n*6000; while(x--)__asm__("nop"); }
 
 /* ================================================================
-   KERNEL MAIN
+   KERNEL MAIN (ANA GİRİŞ)
    ================================================================ */
 void kernel_main(multiboot_info_t *mbi){
-    /* Framebuffer */
+    /* Video Belleği Adres Ataması */
     FB    = (u32*)(unsigned long)mbi->framebuffer_addr;
     SCR_W = mbi->framebuffer_width;
     SCR_H = mbi->framebuffer_height;
     SCR_P = mbi->framebuffer_pitch / 4;
 
-    /* Yedek (GRUB VBE atamadıysa) */
     if(!FB||SCR_W==0){
         FB=(u32*)0xFD000000u; SCR_W=1024; SCR_H=768; SCR_P=1024;
     }
 
+    /* Donanımları Başlat */
     mouse_init();
     pci_scan();
 
     while(1){
+        /* Giriş aygıtlarını güncelle */
         mouse_poll();
         u8 key=kbd_poll();
 
+        /* Durum Makinesi Çizimleri (Arka Tampona Çizilir) */
         switch(g_state){
             case STATE_SETUP_1_NAME:      S1(key); break;
             case STATE_SETUP_2_REGION:    S2();    break;
@@ -637,7 +596,7 @@ void kernel_main(multiboot_info_t *mbi){
             case STATE_DESKTOP:           SD();    break;
         }
 
-        /* Ekran Kopyalamasını Çalıştır */
+        /* Çizimi tek hamlede canlı ekrana aktar ve titremeyi önle */
         swap_buffers();
     }
 }
