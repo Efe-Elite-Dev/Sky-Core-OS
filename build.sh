@@ -1,33 +1,21 @@
-name: Build WindOS Saf Kernel ISO
+#!/bin/bash
+set -e
 
-on:
-  push:
-    branches: [ "main", "master" ]
-  pull_request:
-    branches: [ "main", "master" ]
-  workflow_dispatch: # GitHub Web arayüzünden manuel tetiklemek için buton ekler
+echo "[+] Boot grafik kesiti derleniyor..."
+nasm -f elf32 boot.asm -o boot.o
 
-jobs:
-  build-iso:
-    runs-on: ubuntu-latest
+echo "[+] Nesne dosyalari baglaniyor (Linking)..."
+ld -m elf_i386 -T linker.ld -o kernel.bin boot.o kernel.o
 
-    steps:
-    - name: Depoyu Klonla
-      uses: actions/checkout@v4
+echo "[+] ISO dizin yapisi olusturuluyor..."
+mkdir -p isodir/boot/grub
+cp kernel.bin isodir/boot/kernel.bin
+cp grub.cfg isodir/boot/grub/grub.cfg
 
-    - name: Gerekli Bağımlılıkları Kur (NASM, GCC, GRUB, Xorriso)
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y nasm gcc-multilib grub-common grub-pc-bin xorriso mtools
+echo "[+] Boot edilebilir OOBE/Desktop ISO uretiliyor..."
+grub-mkrescue -o windos.iso isodir
 
-    - name: Derleme Betiğini Çalıştır
-      run: |
-        chmod +x build.sh
-        ./build.sh
+echo "[+] Temizlik yapiliyor..."
+rm -rf boot.o kernel.o kernel.bin isodir
 
-    - name: Üretilen ISO Dosyasını Artifact Olarak Yükle
-      uses: actions/upload-artifact@v4
-      with:
-        name: windos-saf-terminal-iso
-        path: windos.iso
-        if-no-files-found: error
+echo "[===] BASARILI: windos.iso grafik modu icin hazir! [===]"
