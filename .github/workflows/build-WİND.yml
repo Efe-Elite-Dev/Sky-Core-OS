@@ -14,10 +14,11 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
 
+    # Paket listesine mtools ve osprober eklendi (mformat hatasını çözen kısım)
     - name: Install Multi-lib & Build Tools
       run: |
         sudo apt-get update
-        sudo apt-get install -y gcc-multilib build-essential nasm xorriso grub-pc-bin
+        sudo apt-get install -y gcc-multilib build-essential nasm xorriso grub-pc-bin mtools osprober
 
     - name: Assemble Bootloader
       run: |
