@@ -1,8 +1,9 @@
 /*
- * Wind OS  -  kernel.c  v10 (ULTIMATE PROTOTYPE - NO LIMITS)
- * GPU olmayan bir ortamda CPU bazlı Alpha Blending, Soft Shadows,
- * Gradient ve Organik Blob çizim motoru entegre edildi.
- * Performans kısıtlamaları tamamen kaldırıldı, görsellik %100'e çekildi.
+ * Wind OS  -  kernel.c  v10.1 (ULTIMATE PROTOTYPE - NO LIMITS)
+ * DÜZELTİLENLER:
+ * 1. i8, GRID_C, WIDGET_BG ve C_RED eksikleri giderildi.
+ * 2. -Wmisleading-indentation uyarıları satırlar ayrılarak çözüldü.
+ * 3. Kullanılmayan fonksiyonlar (mcpy, kcpy) temizlendi.
  *
  * gcc -m32 -ffreestanding -fno-builtin -fno-stack-protector -O3 -w -c kernel.c -o kernel.o
  */
@@ -12,6 +13,7 @@ typedef unsigned int   u32;
 typedef unsigned short u16;
 typedef unsigned char  u8;
 typedef int            i32;
+typedef signed char    i8; /* EKLENDI: Fare verisi okumak için gerekli i8 tipi */
 
 #define NULL ((void*)0)
 
@@ -25,9 +27,11 @@ static u32 back_buffer[1024 * 768];
 #define CK   0xFF000000u
 #define BG_TOP 0xFF1C1E23u 
 #define BG_BOT 0xFF2A2D34u
+#define GRID_C 0xFF292B2Fu    /* EKLENDI: Grid çizgileri */
 #define PAN_BD  0xFF424549u
 #define CTXT    0xFFDCDDDEu
 #define CGY     0xFF99AAB5u
+#define WIDGET_BG 0xFF2A3F54u /* EKLENDI: Hava Durumu Arkaplanı */
 
 /* Canlı Neon İkon Renkleri */
 #define C_CYAN  0xFF00E5FFu
@@ -36,15 +40,12 @@ static u32 back_buffer[1024 * 768];
 #define C_PURP  0xFF9C27B0u
 #define C_LIME  0xFF10B981u
 #define C_YEL   0xFFFFEB3Bu
+#define C_RED   0xFFFF5252u   /* EKLENDI: Kırmızı */
 
 /* ── PORT I/O & YARDIMCILAR ──────────────────────── */
 static inline u8   inb (u16 p)       {u8  v;__asm__ volatile("inb  %1,%0":"=a"(v):"Nd"(p));return v;}
 static inline void outb(u16 p, u8 v) {__asm__ volatile("outb %0,%1"::"a"(v),"Nd"(p));}
-static inline u32  inl (u16 p)       {u32 v;__asm__ volatile("inl  %1,%0":"=a"(v):"Nd"(p));return v;}
-static inline void outl(u16 p, u32 v){__asm__ volatile("outl %0,%1"::"a"(v),"Nd"(p));}
-static void *mcpy(void *d,const void *s,u32 n){ u8*dp=(u8*)d;const u8*sp=(const u8*)s;while(n--)*dp++=*sp++;return d; }
 static u32 klen(const char *s){u32 n=0;while(s[n])n++;return n;}
-static void kcpy(char *d,const char *s){while(*s)*d++=*s++;*d=0;}
 
 /* ── 8x8 BITMAP FONT ─────────────────────────────── */
 static const u8 F8[128][8]={
@@ -142,7 +143,8 @@ static void glass_rr(i32 x, i32 y, i32 w, i32 h, i32 r, u32 c, u8 alpha) {
     }
     
     /* 2. Katman: Yarı saydam gövde */
-    if(r>w/2) r=w/2; if(r>h/2) r=h/2;
+    if(r>w/2) r=w/2; 
+    if(r>h/2) r=h/2;
     alpha_fr(x+r, y, w-2*r, h, c, alpha); 
     alpha_fr(x, y+r, r, h-2*r, c, alpha); 
     alpha_fr(x+w-r, y+r, r, h-2*r, c, alpha);
@@ -175,23 +177,38 @@ static void thick_line(i32 x0, i32 y0, i32 x1, i32 y1, i32 thickness, u32 c, u8 
     while(1) {
         alpha_circ(x0, y0, thickness/2, c, alpha);
         if(x0==x1 && y0==y1) break;
-        e2=2*err; if(e2>=dy){err+=dy; x0+=sx;} if(e2<=dx){err+=dx; y0+=sy;}
+        e2=2*err; 
+        if(e2>=dy){err+=dy; x0+=sx;} 
+        if(e2<=dx){err+=dx; y0+=sy;}
     }
 }
 
 static void dc(i32 x,i32 y,char ch,u32 fg,i32 sc){
-    if((u8)ch>=128) ch='?'; const u8 *g=F8[(u8)ch];
-    for(i32 row=0;row<8;row++) for(i32 col=0;col<8;col++) 
-        if(g[row]&(1<<(7-col))) alpha_fr(x+col*sc,y+row*sc,sc,sc,fg,255);
+    if((u8)ch>=128) ch='?'; 
+    const u8 *g=F8[(u8)ch];
+    for(i32 row=0;row<8;row++) 
+        for(i32 col=0;col<8;col++) 
+            if(g[row]&(1<<(7-col))) alpha_fr(x+col*sc,y+row*sc,sc,sc,fg,255);
 }
+
 static void ds(i32 x,i32 y,const char*s,u32 fg,i32 sc){
-    i32 cx=x; while(*s){ if(*s=='\n'){cx=x;y+=8*sc;} else{dc(cx,y,*s,fg,sc);cx+=8*sc;} s++; }
+    i32 cx=x; 
+    while(*s){ 
+        if(*s=='\n'){cx=x;y+=8*sc;} 
+        else{dc(cx,y,*s,fg,sc);cx+=8*sc;} 
+        s++; 
+    }
 }
+
 static void dsc(i32 x,i32 y,i32 w,const char*s,u32 fg,i32 sc){
-    i32 tw=(i32)klen(s)*8*sc; if(tw<w) ds(x+(w-tw)/2,y,s,fg,sc); else ds(x,y,s,fg,sc);
+    i32 tw=(i32)klen(s)*8*sc; 
+    if(tw<w) ds(x+(w-tw)/2,y,s,fg,sc); 
+    else ds(x,y,s,fg,sc);
 }
+
 static void swap_buffers(void) {
-    u32 total = SW * SH; for(u32 i = 0; i < total; i++) FB[i] = back_buffer[i];
+    u32 total = SW * SH; 
+    for(u32 i = 0; i < total; i++) FB[i] = back_buffer[i];
 }
 
 /* ================================================================
@@ -199,14 +216,19 @@ static void swap_buffers(void) {
    ================================================================ */
 static i32 MX=512,MY=384,MLB=0,MRB=0,PMLB=0;
 static u8  MCY=0; static i8 MBF[3]={0}; static int MOUSE_READY=0;
+
 static void m_cmd_wait(void){u32 t=100000;while(t--&&(inb(0x64)&0x02));}
 static void m_dat_wait(void){u32 t=100000;while(t--&&!(inb(0x64)&0x01));}
 static void m_write(u8 v){m_cmd_wait();outb(0x64,0xD4);m_cmd_wait();outb(0x60,v);}
 static u8   m_read (void){m_dat_wait();return inb(0x60);}
 
 static void mouse_init(void){
-    m_cmd_wait(); outb(0x64,0xA8); m_cmd_wait(); outb(0x64,0x20); m_dat_wait(); u8 cfg=inb(0x60);
-    cfg|=0x02; cfg&=~0x20; m_cmd_wait(); outb(0x64,0x60); m_cmd_wait(); outb(0x60,cfg);
+    m_cmd_wait(); outb(0x64,0xA8); 
+    m_cmd_wait(); outb(0x64,0x20); 
+    m_dat_wait(); u8 cfg=inb(0x60);
+    cfg|=0x02; cfg&=~0x20; 
+    m_cmd_wait(); outb(0x64,0x60); 
+    m_cmd_wait(); outb(0x60,cfg);
     m_write(0xFF); u8 ack=m_read(); u8 ok=m_read(); m_read();
     if(ack==0xFA && ok==0xAA){ m_write(0xF6); m_read(); m_write(0xF4); m_read(); MOUSE_READY=1; }
 }
@@ -214,21 +236,37 @@ static void mouse_init(void){
 static void mouse_poll(void){
     if(!MOUSE_READY) return;
     for(int iter=0;iter<16;iter++){
-        u8 st=inb(0x64); if(!(st&0x01)) break; 
+        u8 st=inb(0x64); 
+        if(!(st&0x01)) break; 
         if(!(st&0x20)){ inb(0x60); continue; }
         u8 dat=inb(0x60);
         switch(MCY){
-          case 0: if(!(dat&0x08)){MCY=0;break;} MBF[0]=(i8)dat; MCY=1; break;
-          case 1: MBF[1]=(i8)dat; MCY=2; break;
-          case 2: MBF[2]=(i8)dat; MCY=0;{
-            i32 dx=(i32)MBF[1]; i32 dy=(i32)MBF[2];
+          case 0: 
+            if(!(dat&0x08)){MCY=0;break;} 
+            MBF[0]=(i8)dat; MCY=1; break;
+          case 1: 
+            MBF[1]=(i8)dat; MCY=2; break;
+          case 2: 
+            MBF[2]=(i8)dat; MCY=0;{
+            i32 dx=(i32)MBF[1]; 
+            i32 dy=(i32)MBF[2];
             if(MBF[0]&0x10) dx|=(i32)0xFFFFFF00;
             if(MBF[0]&0x20) dy|=(i32)0xFFFFFF00;
-            if(MBF[0]&0x40) dx=0; if(MBF[0]&0x80) dy=0;
+
+            if(MBF[0]&0x40) dx=0; 
+            if(MBF[0]&0x80) dy=0;
+
             MX+=dx; MY-=dy;
-            if(MX<0) MX=0; if(MY<0) MY=0;
-            if(MX>=(i32)SW) MX=(i32)SW-1; if(MY>=(i32)SH) MY=(i32)SH-1;
-            PMLB=MLB; MLB=(MBF[0]&0x01)?1:0; MRB=(MBF[0]&0x02)?1:0;
+
+            if(MX<0) MX=0; 
+            if(MY<0) MY=0;
+
+            if(MX>=(i32)SW) MX=(i32)SW-1; 
+            if(MY>=(i32)SH) MY=(i32)SH-1;
+
+            PMLB=MLB; 
+            MLB=(MBF[0]&0x01)?1:0; 
+            MRB=(MBF[0]&0x02)?1:0;
           } break;
         }
     }
@@ -309,7 +347,7 @@ static void DESKTOP(void){
 
     /* 7. ALT ASİMETRİK GÖREV ÇUBUĞU */
     glass_rr(250, SH-90, 500, 60, 20, 0x1A1C20, 180);
-    ds(280, SH-65, "WIND OS // CORE v10 (NO LIMITS)", CGY, 1);
+    ds(280, SH-65, "WIND OS // CORE v10.1", CGY, 1);
     alpha_circ(640, SH-60, 6, C_LIME, 255); 
     alpha_circ(640, SH-60, 12, C_LIME, 80); /* Glow */
     ds(660, SH-65, "SISTEM AKTIF", CTXT, 1);
@@ -319,9 +357,19 @@ static void DESKTOP(void){
    KERNEL_MAIN
    ================================================================ */
 void kernel_main(multiboot_info_t *mbi){
-    u8 bpp  = mbi->framebuffer_bpp; if(bpp==0) bpp=32; u32 Bpp = (u32)bpp / 8;
-    FB  = (volatile u32*)(u32)mbi->framebuffer_addr; SW  = mbi->framebuffer_width; SH  = mbi->framebuffer_height; SP  = mbi->framebuffer_pitch / Bpp;
-    if(!FB || SW==0){ FB=(volatile u32*)0xFD000000u; SW=1024; SH=768; SP=1024; }
+    u8 bpp  = mbi->framebuffer_bpp; 
+    if(bpp==0) bpp=32; 
+    u32 Bpp = (u32)bpp / 8;
+    
+    FB  = (volatile u32*)(u32)mbi->framebuffer_addr; 
+    SW  = mbi->framebuffer_width; 
+    SH  = mbi->framebuffer_height; 
+    SP  = mbi->framebuffer_pitch / Bpp;
+    
+    if(!FB || SW==0){ 
+        FB=(volatile u32*)0xFD000000u; 
+        SW=1024; SH=768; SP=1024; 
+    }
     
     mouse_init(); 
     
