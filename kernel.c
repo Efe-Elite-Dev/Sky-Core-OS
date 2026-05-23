@@ -1,7 +1,4 @@
-/*
- * Wind OS  -  kernel.c  v10.6 Xubuntu USB Style & 180-Degree 0-Lag Flip
- * Lead Developer: Efe (WindOS Team)
- */
+
 #include "kernel.h"
 
 typedef unsigned int   u32;
@@ -11,7 +8,7 @@ typedef int            i32;
 typedef signed char    i8;
 #define NULL ((void*)0)
 
-typedef enum { STATE_DESKTOP } OS_State;
+/* ÇAKIŞMA ÇÖZÜLDÜ: kernel.h dosyasında zaten olduğu için typedef sökülüp atıldı! */
 static OS_State gST = STATE_DESKTOP;
 
 static volatile u32 *FB = (u32*)0;
@@ -93,7 +90,6 @@ static void dsc(i32 x,i32 y,i32 w,const char*s,u32 fg,u32 bg,i32 sc){ i32 tw=(i3
 static void swap_buffers(void) { 
     u32 total = SW * SH; 
     for(u32 i = 0; i < total; i++) {
-        /* total - 1 - i formülü ekranı hem dikey hem yatay 180 derece çevirir, ayna hatasını çözer! */
         FB[i] = back_buffer[total - 1 - i]; 
     }
 }
@@ -137,7 +133,6 @@ static void mouse_poll(void){
                     if(MBF[0] & 0x10) dx |= (i32)0xFFFFFF00; 
                     if(MBF[0] & 0x20) dy |= (i32)0xFFFFFF00; 
 
-                    /* EKRAN 180 DERECE DÖNDÜĞÜ İÇİN FAREYİ DE TERSİNE ÇEVİRİYORUZ Kİ FİZİKSEL OLARAK DOĞRU ÇALIŞSIN */
                     MX -= dx; MY += dy;
                     
                     if(MX < 0) MX = 0; 
@@ -273,10 +268,9 @@ static void FILEMGR(void){
     rr(fx+15, fy+245, sb-30, 40, 6, !FU ? PAN_BD : SIDEBAR);
     ds(fx+30, fy+260, "Bilgisayar (C:)", CW, 0, 1);
 
-    /* XUBUNTU TARZI AYGIT BUTONU (Gri/Turuncu Tonlarda) */
     if(CLK(fx+15, fy+290, sb-30, 40)) { FU=1; fat32_scan(); }
     rr(fx+15, fy+290, sb-30, 40, 6, FU ? PAN_BD : SIDEBAR);
-    fr(fx+25, fy+305, 14, 10, LIN_ORG); /* Ubuntu Turuncusu İkon */
+    fr(fx+25, fy+305, 14, 10, LIN_ORG); 
     ds(fx+45, fy+305, "USB Bileseni", CW, 0, 1);
 
     i32 cx2 = fx + sb + 20; i32 cy2 = fy + 120;
@@ -289,7 +283,7 @@ static void FILEMGR(void){
                 u32 bg = (FS==i) ? PAN_BD : PAN_BG;
                 rr(ex, ey, 90, 80, 4, bg);
 
-                if(fat32_files[i].is_dir){ fr(ex+25, ey+18, 18, 12, XUB_BLU); rr(ex+15, ey+26, 60, 36, 4, XUB_BLU); } /* XFCE Mavi Klasorleri */
+                if(fat32_files[i].is_dir){ fr(ex+25, ey+18, 18, 12, XUB_BLU); rr(ex+15, ey+26, 60, 36, 4, XUB_BLU); }
                 else { rr(ex+33, ey+15, 24, 30, 2, CW); fr(ex+37, ey+35, 16, 2, LIN_ORG); }
                 
                 dsc(ex, ey+70, 90, fat32_files[i].n, CTXT, 0, 1);
@@ -324,7 +318,7 @@ static void TERMINAL(void) {
     if (TDrag) { if (MLB) { TY -= MY-MY; TX = MX - TDX; TY = MY - TDY; if(TX<0)TX=0; if(TY<0)TY=0; if(TX>SW-TW)TX=SW-TW; if(TY>SH-TH)TY=SH-TH; } else TDrag = 0; }
     DRAW_WINDOW(TX, TY, TW, TH, "Wind Terminal V2", CK);
     rr(TX+15, TY+50, TW-30, TH-65, 5, CK); 
-    ds(TX+25, TY+60, "> WindOS V10.6 - Xubuntu Explorer & Flip Fix Active", CGN, 0, 1); 
+    ds(TX+25, TY+60, "> WindOS V10.7 - Xubuntu Explorer & Flip Fix Active", CGN, 0, 1); 
     if(CLK(TX+TW-45, TY+5, 40, 30)) TERM_OPEN = 0;
 }
 
