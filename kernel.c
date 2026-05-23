@@ -1,6 +1,6 @@
 /*
- * Wind OS  -  kernel.c  v10.4 Compiler Perfect (0 Errors, 0 Warnings)
- * Lead Developer: WindOS Team
+ * Wind OS  -  kernel.c  v10.5 Header Perfect (Çakışmalar Giderildi)
+ * Lead Developer: Efe (WindOS Team)
  */
 #include "kernel.h"
 
@@ -11,8 +11,7 @@ typedef int            i32;
 typedef signed char    i8;
 #define NULL ((void*)0)
 
-/* SİLİNEN STATE DEĞİŞKENİ GERİ EKLENDİ (Hatayı Çözen Kısım) */
-typedef enum { STATE_DESKTOP } OS_State;
+/* ÇAKIŞMA ÇÖZÜLDÜ: kernel.h içinde zaten tanımlı olduğu için typedef silindi, sadece değişken bırakıldı */
 static OS_State gST = STATE_DESKTOP;
 
 static volatile u32 *FB = (u32*)0;
@@ -91,7 +90,7 @@ static void swap_buffers(void) {
     for(u32 i = 0; i < total; i++) FB[i] = back_buffer[i];
 }
 
-/* KLAVYE & MOUSE */
+/* KLAVYE & MOUSE DEGİSKENLERI VE FONKSIYONLARI */
 static const char SCMAP[128]={ 0,27,'1','2','3','4','5','6','7','8','9','0','-','=',8,'\t','q','w','e','r','t','y','u','i','o','p','[',']','\n',0,'a','s','d','f','g','h','j','k','l',';','\'','`',0,'\\','z','x','c','v','b','n','m',',','.','/',0,'*',0,' ',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,'-',0,0,0,'+',0,0,0,0,0,0,0,0,0 };
 static u8 K_SH=0, K_CP=0;
 static i32 MX=512, MY=384, MLB=0, MRB=0, PMLB=0;
@@ -131,7 +130,6 @@ static void mouse_poll(void){
                     if(MBF[0] & 0x20) dy |= (i32)0xFFFFFF00; 
 
                     MX += dx; MY -= dy;
-                    /* GCC Indentation Uyarisi Cozuldu! */
                     if(MX < 0) MX = 0; 
                     if(MY < 0) MY = 0; 
                     if(MX >= (i32)SW) MX = (i32)SW - 1; 
@@ -175,7 +173,6 @@ static void fat32_scan(void) {
     fat32_file_count = 0; DISK_READ_SUCCESS = 0; u8 buf[512];
     
     if(!ata_read_sector(0, buf)) return;
-    
     if(buf[510] != 0x55 || buf[511] != 0xAA) return; 
     
     u32 part_lba = 0;
@@ -193,7 +190,6 @@ static void fat32_scan(void) {
     DISK_READ_SUCCESS = 1; 
     
     for(int i=0; i<512; i+=32) {
-        /* GCC Indentation Uyarisi Cozuldu! */
         if(buf[i] == 0x00) break; 
         if((u8)buf[i] == 0xE5) continue; 
         if(buf[i+11] == 0x0F) continue; 
@@ -315,7 +311,7 @@ static void TERMINAL(void) {
     if (TDrag) { if (MLB) { TY -= MY-MY; TX = MX - TDX; TY = MY - TDY; if(TX<0)TX=0; if(TY<0)TY=0; if(TX>SW-TW)TX=SW-TW; if(TY>SH-TH)TY=SH-TH; } else TDrag = 0; }
     DRAW_WINDOW(TX, TY, TW, TH, "Wind Terminal V2", CK);
     rr(TX+15, TY+50, TW-30, TH-65, 5, CK); 
-    ds(TX+25, TY+60, "> WindOS V10.4 - Ultimate Explorer Active", CGN, 0, 1); 
+    ds(TX+25, TY+60, "> WindOS V10.5 - Perfect Build", CGN, 0, 1); 
     if(CLK(TX+TW-45, TY+5, 40, 30)) TERM_OPEN = 0;
 }
 
