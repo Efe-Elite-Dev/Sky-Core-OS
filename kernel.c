@@ -1,5 +1,5 @@
 /*
- * Wind OS  -  kernel.c  v10.8 Pure Orientation (Ayna ve Terslik Çözüldü)
+ * Wind OS  -  kernel.c  v11.1 Hardware Optimized Flip & Modern Desktop
  * Lead Developer: Efe (WindOS Team)
  */
 #include "kernel.h"
@@ -17,21 +17,23 @@ static volatile u32 *FB = (u32*)0;
 static u32 SW = 1024, SH = 768, SP = 1024;
 static u32 back_buffer[1024 * 768];
 
-/* RENK PALETI (Xubuntu Tarzı Koyu Tema) */
+/* EKRAN DÖNDÜRME MODU: QEMU/VBOX İÇİN DONANIMSAL OPTİMİZASYON */
+static int FLIP_MODE = 0; /* Klavyeden 'F' ile değişir (0, 1, 2, 3) */
+
+/* MODERN RENK PALETI */
 #define CW       0xFFFFFFFFu 
 #define CK       0xFF000000u 
-#define BG_BASE  0xFF2D2D2Du 
-#define TASKBAR  0xFF1E1E1Eu 
-#define PAN_BG   0xFF353535u 
-#define PAN_BD   0xFF454545u 
-#define SIDEBAR  0xFF282828u 
+#define BG_BASE  0xFF0F1419u 
+#define DOCK_BG  0xCC1A1A1Au 
+#define PAN_BG   0xFF252526u 
+#define PAN_BD   0xFF3E3E42u 
 #define CTXT     0xFFE3E5E8u 
-#define CGY      0xFFAAAAAAu 
-#define WIN_BLUE 0xFF0078D7u 
-#define XUB_BLU  0xFF3498DBu 
+#define CGY      0xFF99AAB5u 
+#define WIN_BLUE 0xFF0078D4u 
+#define AI_PURP  0xFF8A2BE2u 
+#define CHR_GRN  0xFF2ECC71u 
 #define COR      0xFFFFCA28u 
 #define CRD      0xFFE74C3Cu 
-#define CGN      0xFF2ECC71u 
 #define SHADOW   0xFF08090Au  
 #define LIN_ORG  0xFFE95420u  
 
@@ -44,18 +46,6 @@ static inline void outl(u16 p, u32 v){__asm__ volatile("outl %0,%1"::"a"(v),"Nd"
 
 static u32 klen(const char *s){u32 n=0;while(s[n])n++;return n;}
 static void kcpy(char *d,const char *s){while(*s)*d++=*s++;*d=0;}
-
-static int is_ext(const char *n, const char *ext) {
-    int nl = (int)klen(n), el = (int)klen(ext);
-    if(nl <= el) return 0;
-    for(int i=0; i<el; i++) {
-        char c1 = n[nl-el+i]; char c2 = ext[i];
-        if(c1 >= 'a' && c1 <= 'z') c1 -= 32;
-        if(c2 >= 'a' && c2 <= 'z') c2 -= 32;
-        if(c1 != c2) return 0;
-    }
-    return 1;
-}
 
 static const u8 F8[128][8]={
  [' ']={0,0,0,0,0,0,0,0},['!']={0x18,0x3C,0x3C,0x18,0x18,0,0x18,0},['"']={0x36,0x36,0,0,0,0,0,0},['#']={0x36,0x7F,0x36,0x36,0x7F,0x36,0x36,0},
@@ -86,33 +76,68 @@ static void ds(i32 x,i32 y,const char*s,u32 fg,u32 bg,i32 sc){ while(*s){ if(*s=
 static void dsc(i32 x,i32 y,i32 w,const char*s,u32 fg,u32 bg,i32 sc){ i32 tw=(i32)klen(s)*8*sc; if(tw<w) ds(x+(w-tw)/2,y,s,fg,bg,sc); else ds(x,y,s,fg,bg,sc); }
 
 /* ========================================================================= */
-/* EFSANEVİ VE KUSURSUZ EKRAN ÇEVİRİCİ (V10.8)                               */
-/* Sadece satırları (Y) çevirir, sütunlara (X) dokunmaz. Ayna hatası YOK!    */
+/* İŞLEMCİ DOSTU (SIFIR KASAN) 4 YÖNLÜ EKRAN DÖNDÜRÜCÜ                       */
+/* Çarpma işlemleri iç döngüden çıkarıldı, sistem yağ gibi akar.             */
 /* ========================================================================= */
 static void swap_buffers(void) { 
-    for(u32 y = 0; y < SH; y++) {
-        for(u32 x = 0; x < SW; x++) {
-            /* (SH - 1 - y) sadece dikeyde takla attırır. Harfler düz okunur! */
-            FB[y * SP + x] = back_buffer[(SH - 1 - y) * SP + x];
+    u32 total = SW * SH;
+    if (FLIP_MODE == 0) {
+        /* NORMAL ÇİZİM (Sıfır Hata) */
+        for(u32 i = 0; i < total; i++) FB[i] = back_buffer[i];
+    } 
+    else if (FLIP_MODE == 1) {
+        /* SADECE TEPETAKLAK DÜZELTİCİ (Ayna Etkisi Yok) */
+        for(u32 y = 0; y < SH; y++) {
+            u32 dst_row = y * SP;
+            u32 src_row = (SH - 1 - y) * SW;
+            for(u32 x = 0; x < SW; x++) {
+                FB[dst_row + x] = back_buffer[src_row + x];
+            }
         }
+    }
+    else if (FLIP_MODE == 2) {
+        /* SADECE AYNA (SAĞ/SOL) DÜZELTİCİ */
+        for(u32 y = 0; y < SH; y++) {
+            u32 row = y * SP;
+            for(u32 x = 0; x < SW; x++) {
+                FB[row + x] = back_buffer[row + (SW - 1 - x)];
+            }
+        }
+    }
+    else if (FLIP_MODE == 3) {
+        /* HEM TEPETAKLAK HEM AYNA DÜZELTİCİ (Tam Ters) */
+        for(u32 i = 0; i < total; i++) FB[i] = back_buffer[total - 1 - i];
     }
 }
 
 /* KLAVYE & MOUSE */
 static const char SCMAP[128]={ 0,27,'1','2','3','4','5','6','7','8','9','0','-','=',8,'\t','q','w','e','r','t','y','u','i','o','p','[',']','\n',0,'a','s','d','f','g','h','j','k','l',';','\'','`',0,'\\','z','x','c','v','b','n','m',',','.','/',0,'*',0,' ',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,'-',0,0,0,'+',0,0,0,0,0,0,0,0,0 };
-static u8 K_SH=0, K_CP=0;
-static i32 MX=512, MY=384, MLB=0, MRB=0, PMLB=0;
-static u8  MCY=0; static i8 MBF[3]={0}; static int MOUSE_READY=0;
+static u8 K_SH=0, K_CP=0, K_ALT=0;
+static int AI_OPEN = 0;
 
 static u8 kbd_poll(void){ 
     u8 st=inb(0x64); if(!(st&0x01)) return 0; if((st&0x20)){ inb(0x60); return 0; } u8 sc=inb(0x60); 
+    
+    if(sc == 0x38) { K_ALT = 1; return 0; } 
+    if(sc == 0xB8) { K_ALT = 0; return 0; } 
+    
     if(sc&0x80){ u8 r=sc&0x7F; if(r==0x2A||r==0x36) K_SH=0; return 0; } 
     if(sc==0x2A||sc==0x36){K_SH=1;return 0;} if(sc==0x3A){K_CP=!K_CP;return 0;} if(sc>=128) return 0; 
+    
     char c=SCMAP[sc]; if(!c) return 0; 
+    
+    /* F Tuşu: Ekran Düzeltene Kadar Bas */
+    if(c == 'f' || c == 'F') { FLIP_MODE = (FLIP_MODE + 1) % 4; return 0; }
+    
+    /* Alt + A : WindAI Aç/Kapat */
+    if(K_ALT && (c == 'a' || c == 'A')) { AI_OPEN = !AI_OPEN; return 0; }
+
     if(c>='a'&&c<='z'){ if(K_SH^K_CP) c-=32; } 
     return (u8)c; 
 }
 
+static i32 MX=512, MY=384, MLB=0, MRB=0, PMLB=0;
+static u8  MCY=0; static i8 MBF[3]={0}; static int MOUSE_READY=0;
 static void m_cmd_wait(void){u32 t=100000;while(t--&&(inb(0x64)&0x02));}
 static void m_dat_wait(void){u32 t=100000;while(t--&&!(inb(0x64)&0x01));}
 static void m_write(u8 v){m_cmd_wait();outb(0x64,0xD4);m_cmd_wait();outb(0x60,v);}
@@ -137,9 +162,12 @@ static void mouse_poll(void){
                     if(MBF[0] & 0x10) dx |= (i32)0xFFFFFF00; 
                     if(MBF[0] & 0x20) dy |= (i32)0xFFFFFF00; 
 
-                    MX += dx; 
-                    MY += dy; /* Ekran Y ekseninde döndüğü için Fareyi de Y ekseninde düzelttik */
-                    
+                    /* Farenin Ekran Dönüşüne Göre Adaptasyonu */
+                    if(FLIP_MODE == 1) { MX += dx; MY += dy; } /* Sadece Y Ters */
+                    else if(FLIP_MODE == 2) { MX -= dx; MY -= dy; } /* Sadece X Ters */
+                    else if(FLIP_MODE == 3) { MX -= dx; MY += dy; } /* İkisi de Ters */
+                    else { MX += dx; MY -= dy; } /* Normal */
+
                     if(MX < 0) MX = 0; 
                     if(MY < 0) MY = 0; 
                     if(MX >= (i32)SW) MX = (i32)SW - 1; 
@@ -157,236 +185,145 @@ static int HOV(i32 x,i32 y,i32 w,i32 h){ return MX>=x&&MX<x+w&&MY>=y&&MY<y+h; }
 static void CUR(void){ static const u8 cur[13][9]={ {1,0,0,0,0,0,0,0,0},{1,1,0,0,0,0,0,0,0},{1,2,1,0,0,0,0,0,0},{1,2,2,1,0,0,0,0,0},{1,2,2,2,1,0,0,0,0},{1,2,2,2,2,1,0,0,0},{1,2,2,2,2,2,1,0,0},{1,2,2,2,2,2,2,1,0},{1,2,2,2,2,2,2,2,1},{1,2,2,2,2,1,1,1,1},{1,2,2,1,2,2,1,0,0},{1,2,1,0,1,2,2,1,0},{1,1,0,0,1,2,2,1,0} }; for(int r=0;r<13;r++) for(int c=0;c<9;c++){ i32 px=MX+c, py=MY+r; if((u32)px>=SW||(u32)py>=SH) continue; if(cur[r][c]==1) pp(px,py,CW); else if(cur[r][c]==2) pp(px,py,CK); } }
 
 /* ========================================================================= */
-/* XUBUNTU TARZI OTOMATİK USB DİSK OKUYUCU (FAT32)                           */
-/* ========================================================================= */
-typedef struct { char n[16]; int is_dir; } FAT_File;
-static FAT_File fat32_files[32];
-static int fat32_file_count = 0;
-static int DISK_READ_SUCCESS = 0;
-
-static int ata_read_sector(u32 lba, u8* buffer) {
-    u32 timeout = 100000;
-    while((inb(0x1F7) & 0x80) && timeout) timeout--;
-    if(!timeout) return 0; 
-    outb(0x1F6, 0xE0 | ((lba >> 24) & 0x0F)); outb(0x1F2, 1);                           
-    outb(0x1F3, (u8) lba); outb(0x1F4, (u8)(lba >> 8)); outb(0x1F5, (u8)(lba >> 16)); outb(0x1F7, 0x20);                        
-    timeout = 100000;
-    while(!(inb(0x1F7) & 0x08) && timeout) timeout--;
-    if(!timeout) return 0; 
-    for(int i = 0; i < 256; i++) {
-        u16 word = inw(0x1F0); buffer[i * 2] = (u8)(word & 0xFF); buffer[i * 2 + 1] = (u8)(word >> 8);
-    }
-    return 1;
-}
-
-static void fat32_scan(void) {
-    fat32_file_count = 0; DISK_READ_SUCCESS = 0; u8 buf[512];
-    
-    if(!ata_read_sector(0, buf)) return;
-    if(buf[510] != 0x55 || buf[511] != 0xAA) return; 
-    
-    u32 part_lba = 0;
-    if(buf[0] != 0xEB && buf[0] != 0xE9) { 
-        part_lba = *(u32*)(&buf[0x1BE + 8]); 
-        if(!ata_read_sector(part_lba, buf)) return;
-        if(buf[510] != 0x55 || buf[511] != 0xAA) return;
-    }
-    
-    u16 rsvd_sec_cnt = *(u16*)(&buf[14]); u8 num_fats = buf[16];
-    u32 fat_size = *(u32*)(&buf[36]); if(fat_size == 0) fat_size = *(u16*)(&buf[22]); 
-    u32 root_dir_lba = part_lba + rsvd_sec_cnt + (num_fats * fat_size);
-    
-    if(!ata_read_sector(root_dir_lba, buf)) return;
-    DISK_READ_SUCCESS = 1; 
-    
-    for(int i=0; i<512; i+=32) {
-        if(buf[i] == 0x00) break; 
-        if((u8)buf[i] == 0xE5) continue; 
-        if(buf[i+11] == 0x0F) continue; 
-        
-        char name[16]; int n=0;
-        for(int j=0; j<8; j++) if(buf[i+j] != ' ') name[n++] = buf[i+j];
-        if(buf[i+8] != ' ' && !(buf[i+11] & 0x10)) { name[n++] = '.'; for(int j=8; j<11; j++) if(buf[i+j] != ' ') name[n++] = buf[i+j]; }
-        name[n] = 0;
-        if(n>0) { kcpy(fat32_files[fat32_file_count].n, name); fat32_files[fat32_file_count].is_dir = (buf[i+11] & 0x10) ? 1 : 0; fat32_file_count++; if(fat32_file_count >= 16) break; }
-    }
-    
-    if(fat32_file_count == 0) {
-        DISK_READ_SUCCESS = 1;
-        kcpy(fat32_files[0].n, "ChromeSetup.exe"); fat32_files[0].is_dir = 0;
-        kcpy(fat32_files[1].n, "Araclar.deb");     fat32_files[1].is_dir = 0;
-        kcpy(fat32_files[2].n, "Yeni_Klasor");     fat32_files[2].is_dir = 1;
-        fat32_file_count = 3;
-    }
-}
-
-/* ========================================================================= */
-/* UYGULAMA MANTIĞI VE ARAYÜZ (XUBUNTU TARZI)                                */
+/* UYGULAMA MANTIĞI VE ARAYÜZ (WINDAI, CHROMIUM, YÜZEN DOCK)                 */
 /* ========================================================================= */
 typedef struct{char n[20];int inst;u32 col;} App;
-static App AP[9]={ 
-    {"Dosyalar",1,COR}, {"Terminal",0,CGN}, {"Tarayici",0,XUB_BLU}, 
-    {"Ayarlar",1,CGY}, {"Mesajlar",1,XUB_BLU}, {"Kamera",1,0xFFE91E63u}, 
-    {"Harita",1,0xFFFF9800u}, {"Muzik",1,0xFF00BCD4u}, {"Sistem",1,0xFF8B008Bu} 
+static App AP[6]={ 
+    {"Dosyalar", 1, COR}, 
+    {"Terminal", 1, CGY}, 
+    {"Chromium", 1, CHR_GRN}, 
+    {"WindAI",   1, AI_PURP}, 
+    {"Ayarlar",  1, WIN_BLUE}, 
+    {"Sistem",   1, CRD} 
 };
 
-static int FO=0, FU=0, FS=-1; 
+static int FO=0, TERM_OPEN=0, CHROME_OPEN=0; 
 static i32 FX=100, FY=80, FD=0, FDX=0, FDY=0;
-static int INSTALLING=0, INSTALL_PROG=0; 
-static int TERM_OPEN=0, DRAWER_OPEN=0;
-static int TX=450, TY=150, TDrag=0, TDX=0, TDY=0;
+static i32 CX=150, CY=100, CD=0, CDX=0, CDY=0; 
 
 static void DRAW_WINDOW(i32 x, i32 y, i32 w, i32 h, const char* title, u32 b_col) {
-    rr(x, y, w, h, 8, b_col); rb(x, y, w, h, PAN_BD, 1);
-    fr(x, y+35, w, 1, PAN_BD); dsc(x+40, y+15, w-80, title, CTXT, 0, 1);
+    rr(x, y, w, h, 10, b_col); 
+    rb(x, y, w, h, PAN_BD, 1);
+    fr(x, y+35, w, 1, PAN_BD); 
+    dsc(x+40, y+15, w-80, title, CTXT, 0, 1);
+    rr(x+w-35, y+8, 25, 20, 4, HOV(x+w-35, y+8, 25, 20) ? CRD : b_col);
+    ds(x+w-26, y+14, "X", CW, 0, 1);
 }
 
 static void FILEMGR(void){
     if(!FO) return; 
-    i32 fw=800, fh=550, fx=FX, fy=FY; 
-    
-    if(!FD&&MLB&&!PMLB&&MY>=fy&&MY<fy+40&&MX>=fx&&MX<fx+fw-40){FD=1;FDX=MX-fx;FDY=MY-fy;}
+    i32 fw=700, fh=450, fx=FX, fy=FY; 
+    if(!FD&&MLB&&!PMLB&&MY>=fy&&MY<fy+35&&MX>=fx&&MX<fx+fw-40){FD=1;FDX=MX-fx;FDY=MY-fy;}
     if(FD){ if(MLB){ FX=MX-FDX; FY=MY-FDY; if(FX<0)FX=0; if(FY<0)FY=0; if(FX>(i32)SW-fw)FX=(i32)SW-fw; if(FY>(i32)SH-fh)FY=(i32)SH-fh; } else FD=0; }
     
-    rr(fx, fy, fw, fh, 8, PAN_BG); rb(fx, fy, fw, fh, PAN_BD, 1);
-    dsc(fx+15, fy+15, fw, "Dosya Gezgini - Xubuntu Stil", CTXT, 0, 1);
-    if(CLK(fx+fw-45, fy+5, 40, 30)) { FO=0; }
-    fr(fx+fw-40, fy+10, 30, 20, HOV(fx+fw-40, fy+10, 30, 20) ? CRD : PAN_BG);
-    ds(fx+fw-28, fy+16, "X", CW, 0, 1);
+    DRAW_WINDOW(fx, fy, fw, fh, "Dosya Gezgini", PAN_BG);
+    if(CLK(fx+fw-35, fy+8, 25, 20)) FO=0;
 
-    fr(fx, fy+45, fw, 55, SIDEBAR); fr(fx, fy+100, fw, 1, CK);
-    rr(fx+15, fy+55, 35, 35, 4, PAN_BG); ds(fx+27, fy+68, "<", CTXT, 0, 1); 
-    rr(fx+60, fy+55, 35, 35, 4, PAN_BG); ds(fx+72, fy+68, ">", CTXT, 0, 1); 
-    rr(fx+110, fy+55, fw-130, 35, 4, PAN_BG);
-    ds(fx+125, fy+68, FU ? "> Aygitlar > USB Bileseni (32 GB)" : "> Bilgisayar > Yerel Disk (C:)", CW, 0, 1);
-
-    i32 sb=220; fr(fx, fy+101, sb, fh-101, SIDEBAR); fr(fx+sb, fy+101, 1, fh-101, CK); 
-
-    ds(fx+20, fy+120, "Yerel Ag", CGY, 0, 1);
-    ds(fx+40, fy+145, "Masaustu", CTXT, 0, 1);
-    ds(fx+40, fy+170, "Indirmeler", CTXT, 0, 1);
+    fr(fx, fy+36, 180, fh-36, SIDEBAR); fr(fx+180, fy+36, 1, PAN_BD);
+    ds(fx+20, fy+60, "Bilgisayar", CGY, 0, 1);
+    rr(fx+10, fy+80, 160, 30, 4, PAN_BD); ds(fx+20, fy+90, "Yerel Disk (C:)", CW, 0, 1);
     
-    ds(fx+20, fy+220, "Aygitlar", CGY, 0, 1);
-
-    if(CLK(fx+15, fy+245, sb-30, 40)) { FU=0; }
-    rr(fx+15, fy+245, sb-30, 40, 6, !FU ? PAN_BD : SIDEBAR);
-    ds(fx+30, fy+260, "Bilgisayar (C:)", CW, 0, 1);
-
-    if(CLK(fx+15, fy+290, sb-30, 40)) { FU=1; fat32_scan(); }
-    rr(fx+15, fy+290, sb-30, 40, 6, FU ? PAN_BD : SIDEBAR);
-    fr(fx+25, fy+305, 14, 10, LIN_ORG); 
-    ds(fx+45, fy+305, "USB Bileseni", CW, 0, 1);
-
-    i32 cx2 = fx + sb + 20; i32 cy2 = fy + 120;
-    
-    if (FU) {
-        if (DISK_READ_SUCCESS) {
-            for(int i=0; i < fat32_file_count; i++){
-                i32 ex = cx2 + (i%4)*120, ey = cy2 + (i/4)*110;
-                if(ex+90 > fx+fw || ey+90 > fy+fh) continue;
-                u32 bg = (FS==i) ? PAN_BD : PAN_BG;
-                rr(ex, ey, 90, 80, 4, bg);
-
-                if(fat32_files[i].is_dir){ fr(ex+25, ey+18, 18, 12, XUB_BLU); rr(ex+15, ey+26, 60, 36, 4, XUB_BLU); }
-                else { rr(ex+33, ey+15, 24, 30, 2, CW); fr(ex+37, ey+35, 16, 2, LIN_ORG); }
-                
-                dsc(ex, ey+70, 90, fat32_files[i].n, CTXT, 0, 1);
-
-                if(CLK(ex,ey,90,80)){
-                    FS = i;
-                    int isExe = is_ext(fat32_files[i].n, ".exe");
-                    int isDeb = is_ext(fat32_files[i].n, ".deb");
-                    if(isExe && !AP[2].inst) { INSTALLING = 1; INSTALL_PROG = 0; }
-                    if(isDeb && !AP[1].inst) { INSTALLING = 2; INSTALL_PROG = 0; }
-                }
-            }
-        } else {
-            ds(cx2, cy2, "USB BAGLANTISI BEKLENIYOR VEYA FORMAT UYUMSUZ", CRD, 0, 1);
-            ds(cx2, cy2+25, "Lutfen aygitinizi 'IDE Hard Disk' olarak takin.", CGY, 0, 1);
-        }
-    } else {
-        char* l_names[] = {"Sistem", "Projeler", "Kullanicilar"};
-        for(int i=0;i<3;i++){
-            i32 ex = cx2 + (i%4)*120, ey = cy2 + (i/4)*110;
-            rr(ex, ey, 90, 80, 4, PAN_BG);
-            fr(ex+25, ey+18, 18, 12, XUB_BLU); rr(ex+15, ey+26, 60, 36, 4, XUB_BLU);
-            dsc(ex, ey+70, 90, l_names[i], CTXT, 0, 1);
-        }
+    char* l_names[] = {"Sistem", "Projeler", "Kullanicilar"};
+    for(int i=0;i<3;i++){
+        i32 ex = fx + 200 + (i%4)*110, ey = fy + 60 + (i/4)*100;
+        rr(ex, ey, 80, 70, 4, PAN_BG);
+        fr(ex+20, ey+15, 18, 12, COR); rr(ex+10, ey+23, 60, 36, 4, COR);
+        dsc(ex, ey+65, 80, l_names[i], CTXT, 0, 1);
     }
 }
 
-static void TERMINAL(void) {
-    if(!TERM_OPEN) return; 
-    i32 TW=550, TH=380;
-    if (!TDrag && MLB && !PMLB && MY >= TY && MY < TY + 35 && MX >= TX && MX < TX + TW-40) { TDrag = 1; TDX = MX - TX; TDY = MY - TY; }
-    if (TDrag) { if (MLB) { TY -= MY-MY; TX = MX - TDX; TY = MY - TDY; if(TX<0)TX=0; if(TY<0)TY=0; if(TX>SW-TW)TX=SW-TW; if(TY>SH-TH)TY=SH-TH; } else TDrag = 0; }
-    DRAW_WINDOW(TX, TY, TW, TH, "Wind Terminal V2", CK);
-    rr(TX+15, TY+50, TW-30, TH-65, 5, CK); 
-    ds(TX+25, TY+60, "> WindOS V10.8 - Pure Orientation & Xubuntu Style", CGN, 0, 1); 
-    if(CLK(TX+TW-45, TY+5, 40, 30)) TERM_OPEN = 0;
+static void CHROMIUM_BROWSER(void) {
+    if(!CHROME_OPEN) return;
+    i32 cw=850, ch=550, cx=CX, cy=CY;
+    
+    if(!CD&&MLB&&!PMLB&&MY>=cy&&MY<cy+35&&MX>=cx&&MX<cx+cw-40){CD=1;CDX=MX-cx;CDY=MY-cy;}
+    if(CD){ if(MLB){ CX=MX-CDX; CY=MY-CDY; if(CX<0)CX=0; if(CY<0)CY=0; if(CX>(i32)SW-cw)CX=(i32)SW-cw; if(CY>(i32)SH-ch)CY=(i32)SH-ch; } else CD=0; }
+    
+    DRAW_WINDOW(cx, cy, cw, ch, "Chromium Web Browser (Offline Mode)", CK);
+    if(CLK(cx+cw-35, cy+8, 25, 20)) CHROME_OPEN=0;
+    
+    fr(cx, cy+36, cw, 40, PAN_BD);
+    rr(cx+10, cy+42, cw-20, 28, 14, PAN_BG);
+    ds(cx+25, cy+52, "https://windos.local/search", CTXT, 0, 1);
+    
+    fr(cx, cy+76, cw, ch-76, CW); 
+    
+    dsc(cx, cy+180, cw, "WindOS Search Engine", WIN_BLUE, 0, 2); 
+    rr(cx+cw/2-250, cy+230, 500, 40, 20, 0xFFF1F3F4u); 
+    ds(cx+cw/2-230, cy+245, "Internete baglanmak icin C++ network yigini gereklidir...", CGY, 0, 1);
+    
+    rr(cx+cw/2-100, cy+290, 80, 30, 4, 0xFFF1F3F4u); dsc(cx+cw/2-100, cy+300, 80, "Ara", CK, 0, 1);
+    rr(cx+cw/2+20, cy+290, 80, 30, 4, 0xFFF1F3F4u); dsc(cx+cw/2+20, cy+300, 80, "Sansliyim", CK, 0, 1);
+}
+
+static void WINDAI_ASSISTANT(void) {
+    if(!AI_OPEN) return;
+    
+    i32 aw = 500, ah = 400;
+    i32 ax = (SW - aw)/2, ay = (SH - ah)/2;
+    
+    fr(ax+5, ay+5, aw, ah, SHADOW); 
+    rr(ax, ay, aw, ah, 15, BG_BASE); 
+    rb(ax, ay, aw, ah, AI_PURP, 2); 
+    
+    ds(ax+20, ay+20, "WindAI Assistant (Offline)", AI_PURP, 0, 1);
+    ds(ax+aw-150, ay+20, "[ Alt + A ile Kapat ]", CGY, 0, 1);
+    fr(ax, ay+45, aw, 1, PAN_BD);
+    
+    rr(ax+20, ay+70, 300, 40, 8, PAN_BG);
+    ds(ax+30, ay+85, "Merhaba Efe! WindOS V11'e hos geldin.", CTXT, 0, 1);
+    
+    rr(ax+aw-320, ay+130, 300, 40, 8, WIN_BLUE);
+    ds(ax+aw-310, ay+145, "LGS oncesi son dokunuslari yapiyoruz!", CW, 0, 1);
+    
+    rr(ax+20, ay+190, 400, 60, 8, PAN_BG);
+    ds(ax+30, ay+205, "Harika! Gercek yapay zeka GPU suruculeri ister", CTXT, 0, 1);
+    ds(ax+30, ay+225, "ama senin azminle bu OS gercek bir basyapit oldu.", CTXT, 0, 1);
+    
+    rr(ax+20, ah+ay-50, aw-40, 35, 17, PAN_BG);
+    ds(ax+35, ah+ay-38, "Bir seyler yazin... (Simulasyon)", CGY, 0, 1);
+    circ(ax+aw-40, ah+ay-32, 12, AI_PURP);
+    ds(ax+aw-44, ah+ay-36, ">", CW, 0, 1);
 }
 
 static void DESKTOP(void){
-    fr(0, 0, (i32)SW, (i32)SH, BG_BASE);
+    fr(0, 0, (i32)SW, (i32)SH, BG_BASE); 
     
-    i32 dw = 600, dh = 350;
-    i32 dx = (SW - dw) / 2;
+    /* MODERN YÜZEN DOCK (Ekranın Alt Ortasında MacOS / Win11 Tarzı) */
+    i32 dock_w = 6 * 70 + 20; 
+    i32 dock_x = (SW - dock_w) / 2;
+    i32 dock_y = SH - 80;
     
-    if (DRAWER_OPEN) {
-        fr(dx+5, 0, dw, dh+5, SHADOW); 
-        rr(dx, 0, dw, dh, 12, SIDEBAR);
-        rb(dx, 0, dw, dh, PAN_BD, 2);
+    rr(dock_x, dock_y, dock_w, 65, 15, DOCK_BG); 
+    rb(dock_x, dock_y, dock_w, 65, PAN_BD, 1);
+    
+    for(int i=0; i<6; i++) {
+        i32 ix = dock_x + 15 + i*70;
+        i32 iy = dock_y + 10;
         
-        rr(dx + dw/2 - 40, dh - 25, 80, 15, 4, PAN_BD);
-        ds(dx + dw/2 - 4, dh - 20, "^", CGY, 0, 1);
-        if(CLK(dx + dw/2 - 50, dh - 30, 100, 30)) DRAWER_OPEN = 0;
+        rr(ix, iy, 50, 45, 10, HOV(ix, iy, 50, 45) ? PAN_BD : PAN_BG);
+        fr(ix+15, iy+12, 20, 20, AP[i].col);
         
-        for(int i=0; i<9; i++) {
-            if(!AP[i].inst) continue;
-            i32 ix = dx + 30 + (i%5)*110; 
-            i32 iy = 40 + (i/5)*120;
-            
-            rr(ix, iy, 90, 80, 8, HOV(ix, iy, 90, 80) ? PAN_BD : PAN_BG);
-            if(i==0) { 
-                fr(ix+35, iy+20, 14, 10, AP[i].col); rr(ix+25, iy+28, 40, 24, 4, AP[i].col);
-            } else {
-                fr(ix+30, iy+25, 30, 20, AP[i].col);
-            }
-            dsc(ix, iy+70, 90, AP[i].n, CTXT, 0, 1);
-            
-            if(CLK(ix, iy, 90, 80)) {
-                if(i == 0) FO = !FO; 
-                if(i == 1) TERM_OPEN = !TERM_OPEN; 
-                DRAWER_OPEN = 0; 
-            }
+        if(CLK(ix, iy, 50, 45)) {
+            if(i == 0) FO = !FO; 
+            if(i == 2) CHROME_OPEN = !CHROME_OPEN; 
+            if(i == 3) AI_OPEN = !AI_OPEN; 
         }
-    } else {
-        rr(SW/2 - 60, 0, 120, 25, 8, SIDEBAR);
-        rb(SW/2 - 60, 0, 120, 25, PAN_BD, 1);
-        ds(SW/2 - 4, 8, "v", CGY, 0, 1);
-        if(CLK(SW/2 - 60, 0, 120, 25)) DRAWER_OPEN = 1;
     }
+    
+    /* Üst İnce Bilgi Çubuğu (Top Bar) */
+    fr(0, 0, SW, 25, CK);
+    ds(15, 8, "WindOS V11.0 Modern", CTXT, 0, 1);
+    ds(SW-300, 8, "[F] Hata Duzelt | [Alt+A] WindAI", CGY, 0, 1);
 
-    FILEMGR(); TERMINAL();
-    
-    if(INSTALLING) {
-        i32 px = SW/2 - 180, py = SH/2 - 70;
-        fr(px+8, py+8, 360, 140, SHADOW); rr(px, py, 360, 140, 10, INSTALLING==1 ? WIN_BLUE : LIN_ORG);
-        ds(px+20, py+20, INSTALLING==1 ? "Windows Alt Sistemi (.EXE)" : "Linux Alt Sistemi (.DEB)", CW, 0, 1);
-        ds(px+20, py+50, INSTALLING==1 ? "Yazilim Kuruluyor..." : "Gelistirici Araclari Aciliyor...", CW, 0, 1);
-        rr(px+30, py+90, 300, 20, 5, CK); rr(px+30, py+90, INSTALL_PROG * 3, 20, 5, CW); 
-        INSTALL_PROG += 1;
-        if(INSTALL_PROG >= 100) { 
-            if(INSTALLING == 1) AP[2].inst = 1;  
-            if(INSTALLING == 2) AP[1].inst = 1;  
-            INSTALLING = 0; 
-        }
-    }
+    FILEMGR(); 
+    CHROMIUM_BROWSER();
+    WINDAI_ASSISTANT(); 
 }
 
 void kernel_main(multiboot_info_t *mbi){
     u8 bpp = mbi->framebuffer_bpp; if(bpp==0) bpp=32; u32 Bpp = (u32)bpp / 8; FB = (volatile u32*)(unsigned long)mbi->framebuffer_addr; SW = mbi->framebuffer_width; SH = mbi->framebuffer_height; SP = mbi->framebuffer_pitch / Bpp;
     if(!FB || SW==0){ FB=(volatile u32*)0xFD000000u; SW=1024; SH=768; SP=1024; }
-    mouse_init(); gST = STATE_DESKTOP;
+    mouse_init(); 
     while(1){ mouse_poll(); kbd_poll(); DESKTOP(); CUR(); swap_buffers(); volatile int x=50000;while(x--)__asm__("nop"); }
 }
